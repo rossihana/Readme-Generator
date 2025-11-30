@@ -1,0 +1,15 @@
+# Sensitif
+.env
+
+# Dependensi
+node_modules/
+package-lock.json
+
+# Python
+api/__pycache__/
+api/venv/ # Jika Anda menggunakan venv di direktori api
+
+# Frontend
+frontend/dist/
+frontend/node_modules/
+frontend/package-lock.json

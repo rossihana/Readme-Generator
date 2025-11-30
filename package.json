@@ -1,0 +1,15 @@
+{
+  "name": "readme-generator-monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for AI Readme Generator",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run dev --prefix frontend\" \"uvicorn api.main:app --host 0.0.0.0 --port 8001\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

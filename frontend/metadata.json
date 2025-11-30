@@ -1,0 +1,5 @@
+{
+  "name": "AI README Generator",
+  "description": "An application to automatically generate a README.md file from a GitHub repository link.",
+  "requestFramePermissions": []
+}
