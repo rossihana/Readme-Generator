@@ -1,12 +1,12 @@
 {
   "builds": [
     {
-      "src": "frontend",
+      "src": ".",
       "use": "@vercel/static-build",
       "config": {
 
-        "buildCommand": "npm run build --prefix frontend",
-        "installCommand": "npm install --prefix frontend"
+        "buildCommand": "npm run build",
+        "installCommand": "npm install"
       }
     },
     {
