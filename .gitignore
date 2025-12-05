@@ -13,3 +13,4 @@ api/venv/ # Jika Anda menggunakan venv di direktori api
 frontend/dist/
 frontend/node_modules/
 frontend/package-lock.json
+.vercel
