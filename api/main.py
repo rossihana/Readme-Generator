@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -13,6 +13,13 @@ import re
 load_dotenv()
 
 app = FastAPI()
+
+@app.middleware("http")
+async def strip_api_prefix(request: Request, call_next):
+    if request.url.path.startswith("/api"):
+        request.scope["path"] = request.url.path[4:]
+    response = await call_next(request)
+    return response
 
 origins = [
     "http://localhost:3000",
