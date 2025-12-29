@@ -19,10 +19,12 @@ const App: React.FC = () => {
     setElapsedTime(0);
     setFinalElapsedTime(null); // Reset final time on new generation
     console.log('State after initial set: isLoading:', true, 'startTime:', Date.now(), 'elapsedTime:', 0);
+    const API_BASE = import.meta.env.VITE_API_URL || '/api';
+    console.log('Using API Base:', API_BASE);
     console.log('Mengirim permintaan ke backend dengan URL:', githubUrl);
 
     try {
-      const response = await fetch('/api/generate-readme', {
+      const response = await fetch(`${API_BASE}/generate-readme`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
