@@ -22,7 +22,7 @@ const App: React.FC = () => {
     console.log('Mengirim permintaan ke backend dengan URL:', githubUrl);
 
     try {
-      const response = await fetch('http://localhost:8001/generate-readme', {
+      const response = await fetch('http://localhost:8000/generate-readme', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
