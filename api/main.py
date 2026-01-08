@@ -215,10 +215,28 @@ async def call_deepseek(prompt_messages: list, openrouter_key: str, openrouter_m
         "model": openrouter_model,
         "messages": prompt_messages
     }
+    
+    max_retries = 3
+    base_delay = 2
+    
     async with httpx.AsyncClient() as client:
-        response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        for attempt in range(max_retries):
+            try:
+                response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=60.0)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    if attempt < max_retries - 1:
+                        wait_time = base_delay * (2 ** attempt) # 2s, 4s, 8s
+                        print(f"Rate limit hit (429). Retrying in {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise HTTPException(status_code=429, detail="Server AI sedang sibuk (Rate Limit). Coba beberapa saat lagi.")
+                raise e
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error calling AI Provider: {str(e)}")
 
 @app.get("/")
 async def read_root():
