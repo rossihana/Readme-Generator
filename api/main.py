@@ -43,12 +43,15 @@ app.add_middleware(
 GITHUB_PAT = os.getenv("GITHUB_PAT")
 OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL") # Default ke deepseek/deepseek-chat-v3.1:free jika tidak disetel
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Pastikan variabel lingkungan ada
 if not GITHUB_PAT:
     raise ValueError("GITHUB_PAT environment variable not set.")
 if not OPENROUTER_KEY:
     raise ValueError("OPENROUTER_KEY environment variable not set.")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY environment variable not set.")
 
 GITHUB_HEADERS = {
     "Authorization": f"token {GITHUB_PAT}",
@@ -57,6 +60,7 @@ GITHUB_HEADERS = {
 
 class GitHubUrl(BaseModel):
     githubUrl: str
+    aiProvider: str = "google"  # Default to google
 
 def decode_base64_content(encoded_content: str) -> str:
     """Mendekode konten Base64."""
@@ -239,6 +243,55 @@ async def call_deepseek(prompt_messages: list, openrouter_key: str, openrouter_m
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Error calling AI Provider: {str(e)}")
 
+async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
+    """Call Google AI Studio API directly (not through OpenRouter)"""
+    # Convert OpenAI-style messages to Google's format
+    # Google expects: {"contents": [{"parts": [{"text": "..."}]}]}
+    contents = []
+    for msg in prompt_messages:
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append({
+            "role": role,
+            "parts": [{"text": msg["content"]}]
+        })
+    
+    payload = {
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 8192
+        }
+    }
+    
+    # Use gemini-2.5-flash as default model
+    model = "gemini-2.5-flash"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={google_api_key}"
+    
+    max_retries = 3
+    base_delay = 2
+    
+    async with httpx.AsyncClient() as client:
+        for attempt in range(max_retries):
+            try:
+                response = await client.post(url, json=payload, timeout=60.0)
+                response.raise_for_status()
+                result = response.json()
+                # Extract text from Google's response format
+                return result["candidates"][0]["content"]["parts"][0]["text"]
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    if attempt < max_retries - 1:
+                        wait_time = base_delay * (2 ** attempt)
+                        print(f"Google AI rate limit hit (429). Retrying in {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise HTTPException(status_code=429, detail="Google AI sedang sibuk (Rate Limit). Coba beberapa saat lagi.")
+                raise HTTPException(status_code=e.response.status_code, detail=f"Google AI error: {e.response.text}")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error calling Google AI: {str(e)}")
+
+
 @app.get("/")
 async def read_root():
     return {"message": "Welcome to the AI README Generator Backend!"}
@@ -249,8 +302,13 @@ async def read_root():
 async def generate_readme_api(github_url_data: GitHubUrl):
     """Endpoint untuk menghasilkan README.md dari URL GitHub."""
     github_url = github_url_data.githubUrl.strip()
+    ai_provider = github_url_data.aiProvider.strip().lower()
+    
     if not GITHUB_URL_REGEX.match(github_url):
         raise HTTPException(status_code=400, detail="Invalid GitHub URL provided.")
+    
+    if ai_provider not in ["google", "openrouter"]:
+        raise HTTPException(status_code=400, detail="Invalid AI provider. Choose 'google' or 'openrouter'.")
 
     url_parts = github_url.split('/')
     owner = url_parts[3]
@@ -259,7 +317,13 @@ async def generate_readme_api(github_url_data: GitHubUrl):
     try:
         github_data = await get_github_directory_contents(github_url, GITHUB_PAT)
         prompt_messages = build_llm_prompt(github_data)
-        readme_content = await call_deepseek(prompt_messages, OPENROUTER_KEY, OPENROUTER_MODEL)
+        
+        # Route to appropriate AI provider
+        if ai_provider == "google":
+            readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEY)
+        else:  # openrouter
+            readme_content = await call_deepseek(prompt_messages, OPENROUTER_KEY, OPENROUTER_MODEL)
+        
         return {"readme": readme_content}
     except HTTPException as e:
         raise e

@@ -11,8 +11,8 @@ const App: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [finalElapsedTime, setFinalElapsedTime] = useState<number | null>(null);
 
-  const handleGenerateReadme = async (githubUrl: string): Promise<void> => {
-    console.log('handleGenerateReadme called. githubUrl:', githubUrl);
+  const handleGenerateReadme = async (githubUrl: string, aiProvider: string): Promise<void> => {
+    console.log('handleGenerateReadme called. githubUrl:', githubUrl, 'aiProvider:', aiProvider);
     setIsLoading(true);
     setError(null);
     setStartTime(Date.now());
@@ -21,7 +21,7 @@ const App: React.FC = () => {
     console.log('State after initial set: isLoading:', true, 'startTime:', Date.now(), 'elapsedTime:', 0);
     const API_BASE = import.meta.env.VITE_API_URL || '/api';
     console.log('Using API Base:', API_BASE);
-    console.log('Mengirim permintaan ke backend dengan URL:', githubUrl);
+    console.log('Mengirim permintaan ke backend dengan URL:', githubUrl, 'Provider:', aiProvider);
 
     try {
       const response = await fetch(`${API_BASE}/generate-readme`, {
@@ -29,7 +29,7 @@ const App: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ githubUrl: githubUrl }),
+        body: JSON.stringify({ githubUrl: githubUrl, aiProvider: aiProvider }),
       });
 
       console.log('Menerima respons dari backend. Status:', response.status);
