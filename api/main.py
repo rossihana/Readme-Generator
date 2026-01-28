@@ -44,7 +44,7 @@ app.add_middleware(
 # Ambil variabel lingkungan
 GITHUB_PAT = os.getenv("GITHUB_PAT")
 OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL") # Default ke deepseek/deepseek-chat-v3.1:free jika tidak disetel
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Pastikan variabel lingkungan ada
@@ -52,8 +52,7 @@ if not GITHUB_PAT:
     raise ValueError("GITHUB_PAT environment variable not set.")
 if not OPENROUTER_KEY:
     raise ValueError("OPENROUTER_KEY environment variable not set.")
-if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable not set.")
+# GOOGLE_API_KEY is optional - only required when using Google AI provider
 
 GITHUB_HEADERS = {
     "Authorization": f"token {GITHUB_PAT}",
@@ -322,6 +321,8 @@ async def generate_readme_api(github_url_data: GitHubUrl):
         
         # Route to appropriate AI provider
         if ai_provider == "google":
+            if not GOOGLE_API_KEY:
+                raise HTTPException(status_code=500, detail="Google API Key tidak tersedia. Silakan gunakan OpenRouter atau hubungi administrator.")
             readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEY)
         else:  # openrouter
             readme_content = await call_deepseek(prompt_messages, OPENROUTER_KEY, OPENROUTER_MODEL)
