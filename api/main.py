@@ -93,7 +93,7 @@ async def get_github_directory_contents(github_url: str, github_pat: str) -> dic
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail="generator.errors.api.unexpected_error")
 
 def parse_github_url(github_url: str) -> tuple[str, str, str]:
     """Menganalisis URL GitHub dan mengembalikan pemilik, repositori, dan jalur."""
@@ -102,7 +102,7 @@ def parse_github_url(github_url: str) -> tuple[str, str, str]:
     parts = cleaned_url.split('/')
 
     if len(parts) < 2:
-        raise HTTPException(status_code=400, detail="Invalid GitHub URL format.")
+        raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url_format")
 
     owner = parts[1]
     repo = parts[2].replace(".git", "") # Hapus .git jika ada
@@ -115,7 +115,7 @@ async def fetch_github_data(github_url: str, github_pat: str) -> dict:
     owner = url_parts[3]
     repo = url_parts[4].replace(".git", "")
     if not owner or not repo:
-        raise HTTPException(status_code=400, detail="Invalid GitHub URL.")
+        raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url")
 
     GITHUB_HEADERS = {
         "Authorization": f"token {github_pat}",
@@ -178,7 +178,7 @@ async def fetch_github_data(github_url: str, github_pat: str) -> dict:
                 raise HTTPException(status_code=404, detail="generator.errors.api.repo_not_found")
             raise HTTPException(status_code=500, detail="generator.errors.api.fetch_failed")
         except httpx.RequestError as e:
-            raise HTTPException(status_code=500, detail=f"Network error: {e}")
+            raise HTTPException(status_code=500, detail="generator.errors.api.network_error")
     return repo_data
 
 def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
@@ -391,7 +391,7 @@ async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
                 try:
                     err_json = e.response.json()
                     err_msg = err_json.get("error", {}).get("message", "generator.errors.api.unknown")
-                    raise HTTPException(status_code=e.response.status_code, detail=f"Google AI: {err_msg}")
+                    raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
                 except:
                     raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
 
@@ -413,9 +413,9 @@ async def generate_readme_api(github_url_data: GitHubUrl):
     github_url = github_url_data.githubUrl.strip()
     
     if not GITHUB_URL_REGEX.match(github_url):
-        raise HTTPException(status_code=400, detail="Invalid GitHub URL provided.")
+        raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url")
     if not GOOGLE_API_KEY:
-        raise HTTPException(status_code=500, detail="Google API Key tidak tersedia.")
+        raise HTTPException(status_code=500, detail="generator.errors.api.no_google_key")
 
     try:
         github_data = await get_github_directory_contents(github_url, GITHUB_PAT)
@@ -425,4 +425,4 @@ async def generate_readme_api(github_url_data: GitHubUrl):
     except HTTPException as e:
         raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+        raise HTTPException(status_code=500, detail="generator.errors.api.internal_error")

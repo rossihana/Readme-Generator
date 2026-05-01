@@ -59,7 +59,14 @@
         "quota": "API usage limit (Quota) has been reached. Please try again later (Error 429).",
         "fetch_failed": "Failed to fetch data from GitHub. Ensure the URL is correct and the repository is public.",
         "repo_not_found": "GitHub repository not found. Please double-check your URL.",
-        "unknown": "An unexpected error occurred while contacting the AI service."
+        "unknown": "An unexpected error occurred while contacting the AI service.",
+        "invalid_url_format": "Invalid GitHub URL format.",
+        "invalid_url": "Invalid GitHub URL.",
+        "network_error": "Network error while contacting GitHub.",
+        "no_google_key": "Google API Key is not available.",
+        "internal_error": "Internal Server Error occurred.",
+        "unexpected_error": "An unexpected error occurred.",
+        "generate_failed": "Failed to generate README."
       }
     },
     "button": {
@@ -84,7 +91,9 @@
       "verbosity_full": "Detailed & Complete",
       "verbosity_min": "Short & Minimalist",
       "logo_label": "Logo URL (Optional)",
+      "logo_placeholder": "https://example.com/logo.png",
       "screenshot_label": "Screenshot URL (Optional)",
+      "screenshot_placeholder": "https://example.com/screenshot.png",
       "visual_label": "Visual & Navigation Options",
       "emoji": "Include Emojis",
       "icons": "Tech Icons",
@@ -109,7 +118,9 @@
     "download": "Download .md",
     "expand": "⛶ Expand",
     "close_expand": "✕ Close Expand",
-    "edit_info": "Edit Mode — Changes are applied to Preview, Raw Code, and downloaded file."
+    "edit_info": "Edit Mode — Changes are applied to Preview, Raw Code, and downloaded file.",
+    "seconds_unit": "s",
+    "footer_attribution": "This README was automatically generated using AI (Gemini API). Please review and edit as needed."
   },
   "info": {
     "header": "Information & Help Center",

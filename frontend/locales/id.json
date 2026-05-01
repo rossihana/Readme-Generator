@@ -59,7 +59,14 @@
         "quota": "Batas penggunaan (Quota) API telah tercapai. Silakan coba lagi nanti (Error 429).",
         "fetch_failed": "Gagal mengambil data dari GitHub. Pastikan URL benar dan repositori bersifat publik.",
         "repo_not_found": "Repositori GitHub tidak ditemukan. Harap periksa kembali URL Anda.",
-        "unknown": "Terjadi kesalahan tak terduga saat menghubungi layanan AI."
+        "unknown": "Terjadi kesalahan tak terduga saat menghubungi layanan AI.",
+        "invalid_url_format": "Format URL GitHub tidak valid.",
+        "invalid_url": "URL GitHub tidak valid.",
+        "network_error": "Kesalahan jaringan saat menghubungi GitHub.",
+        "no_google_key": "Google API Key tidak tersedia.",
+        "internal_error": "Terjadi kesalahan internal server.",
+        "unexpected_error": "Terjadi kesalahan yang tidak terduga.",
+        "generate_failed": "Gagal menghasilkan README."
       }
     },
     "button": {
@@ -84,7 +91,9 @@
       "verbosity_full": "Detail & Lengkap",
       "verbosity_min": "Singkat & Minimalis",
       "logo_label": "Logo URL (Opsional)",
+      "logo_placeholder": "https://example.com/logo.png",
       "screenshot_label": "Screenshot URL (Opsional)",
+      "screenshot_placeholder": "https://example.com/screenshot.png",
       "visual_label": "Opsi Visual & Navigasi",
       "emoji": "Sertakan Emoji",
       "icons": "Ikon Teknologi",
@@ -109,7 +118,9 @@
     "download": "Unduh .md",
     "expand": "⛶ Expand",
     "close_expand": "✕ Tutup Expand",
-    "edit_info": "Mode Edit — Perubahan diterapkan ke Pratinjau, Raw Code, dan file yang diunduh."
+    "edit_info": "Mode Edit — Perubahan diterapkan ke Pratinjau, Raw Code, dan file yang diunduh.",
+    "seconds_unit": "d",
+    "footer_attribution": "README ini dihasilkan secara otomatis menggunakan AI (Gemini API). Harap tinjau dan edit kembali sesuai kebutuhan."
   },
   "info": {
     "header": "Pusat Informasi & Bantuan",

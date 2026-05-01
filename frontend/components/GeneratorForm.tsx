@@ -359,7 +359,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   value={preferences.logoUrl}
                   onChange={(e) => setPreferences({ ...preferences, logoUrl: e.target.value })}
                   className="w-full bg-gray-800 border border-gray-600 rounded py-2 px-3 text-sm text-gray-200 focus:ring-1 focus:ring-purple-500"
-                  placeholder="https://..."
+                  placeholder={t('generator.options.logo_placeholder')}
                 />
               </div>
 
@@ -372,7 +372,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   value={preferences.screenshotUrl}
                   onChange={(e) => setPreferences({ ...preferences, screenshotUrl: e.target.value })}
                   className="w-full bg-gray-800 border border-gray-600 rounded py-2 px-3 text-sm text-gray-200 focus:ring-1 focus:ring-purple-500"
-                  placeholder="https://..."
+                  placeholder={t('generator.options.screenshot_placeholder')}
                 />
               </div>
             </div>

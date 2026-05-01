@@ -159,12 +159,18 @@ export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset,
               </div>
             )}
           </div>
+          {/* AI Attribution Disclaimer (Fullscreen) */}
+          <div className="px-6 py-3 bg-gray-900 border-t border-gray-800 text-center">
+            <p className="text-[10px] text-purple-400 italic">
+              {t('readme.footer_attribution')}
+            </p>
+          </div>
         </div>
       )}
 
       <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-100">{t('readme.header')} {finalElapsedTime !== null && `(${finalElapsedTime}s)`}</h2>
+        <h2 className="text-2xl font-bold text-gray-100">{t('readme.header')} {finalElapsedTime !== null && `(${finalElapsedTime}${t('readme.seconds_unit')})`}</h2>
         <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={onReset}
@@ -257,6 +263,14 @@ export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset,
             </div>
           )}
         </div>
+      </div>
+      
+      {/* AI Attribution Disclaimer (Visual Only) */}
+      <div className="mt-4 p-4 bg-purple-900/10 border border-purple-500/20 rounded-lg flex items-start gap-3">
+        <span className="text-xl">ℹ️</span>
+        <p className="text-xs text-purple-300 leading-relaxed italic">
+          {t('readme.footer_attribution')}
+        </p>
       </div>
       </div>
     </>

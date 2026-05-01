@@ -50,14 +50,14 @@ const App: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Gagal menghasilkan README.');
+        throw new Error(errorData.detail || 'generator.errors.api.generate_failed');
       }
 
       const data = await response.json();
       setReadmeContent(data.readme);
 
     } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan tak terduga.');
+      setError(err.message || 'generator.errors.api.unknown');
     } finally {
       clearInterval(intervalId);
       setIsLoading(false);
