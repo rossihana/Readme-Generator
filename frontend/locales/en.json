@@ -1,0 +1,159 @@
+{
+  "app": {
+    "title": "AI README Generator",
+    "tagline": "Paste your GitHub repository link to generate a professional README.md.",
+    "footer": "© 2026 AI README Generator. Created for academic purposes."
+  },
+  "presets": {
+    "header": "1. Choose Project Purpose",
+    "academic": {
+      "title": "Academic",
+      "desc": "Focus on research structure and methodology."
+    },
+    "opensource": {
+      "title": "Open Source",
+      "desc": "Focus on contributions and technical documentation."
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "desc": "Focus on core features and project showcase."
+    }
+  },
+  "generator": {
+    "step2": "2. Repository Link",
+    "placeholder": "https://github.com/username/repo",
+    "pro_mode": "Manual Customization (Pro Mode)",
+    "pro_mode_desc": "Customize every section of your README in depth.",
+    "groups": {
+      "foundation": "📌 Project Foundation",
+      "foundation_desc": "(recommended)",
+      "general": "📋 General Completeness",
+      "extra": "🚀 Additional Information"
+    },
+    "loading": {
+      "connect": "Connecting to GitHub...",
+      "fetch": "Fetching repository data...",
+      "analyze": "Analyzing source code...",
+      "generate": "Generating README with Gemini AI..."
+    },
+    "recommended": "Recommended",
+    "sections": {
+      "features": "Main Features",
+      "installation": "Installation",
+      "usage": "Usage",
+      "contributing": "Contributing",
+      "license": "License",
+      "configuration": "Configuration",
+      "roadmap": "Roadmap",
+      "faq": "FAQ",
+      "badges": "Badges / Shields",
+      "tech_stack": "Tech Stack",
+      "authors": "Authors / Team",
+      "directory_structure": "Directory Structure"
+    },
+    "errors": {
+      "empty_url": "URL cannot be empty.",
+      "invalid_url": "Please enter a valid GitHub repository URL.",
+      "api": {
+        "busy": "Gemini AI servers are globally overloaded — this is not a quota issue. Please wait a few minutes and try again. (Error 503)",
+        "quota": "API usage limit (Quota) has been reached. Please try again later (Error 429).",
+        "fetch_failed": "Failed to fetch data from GitHub. Ensure the URL is correct and the repository is public.",
+        "repo_not_found": "GitHub repository not found. Please double-check your URL.",
+        "unknown": "An unexpected error occurred while contacting the AI service."
+      }
+    },
+    "button": {
+      "select_preset": "Choose Project Purpose First...",
+      "generating": "Generating...",
+      "generate_prefix": "⚡ Fast Generate",
+      "section_count": "sections selected"
+    },
+    "options": {
+      "lang_label": "Output Language",
+      "lang_id": "Bahasa Indonesia",
+      "lang_en": "English",
+      "tone_label": "Writing Style (Tone)",
+      "tone_prof": "Professional",
+      "tone_tech": "Technical",
+      "tone_casual": "Casual",
+      "tone_creative": "Creative",
+      "audience_label": "Target Audience",
+      "audience_dev": "Developer",
+      "audience_user": "End-User (General)",
+      "verbosity_label": "Output Length (Verbosity)",
+      "verbosity_full": "Detailed & Complete",
+      "verbosity_min": "Short & Minimalist",
+      "logo_label": "Logo URL (Optional)",
+      "screenshot_label": "Screenshot URL (Optional)",
+      "visual_label": "Visual & Navigation Options",
+      "emoji": "Include Emojis",
+      "icons": "Tech Icons",
+      "toc": "Table of Contents (TOC)"
+    },
+    "warning": {
+      "title": "Manual Changes Detected",
+      "desc": "Changing the project purpose will reset your manually selected sections. Continue?",
+      "cancel": "Cancel",
+      "continue": "Yes, Continue"
+    }
+  },
+  "readme": {
+    "header": "README Result",
+    "reset": "Create New",
+    "pratinjau": "Preview",
+    "raw": "Raw Code",
+    "edit": "Edit",
+    "copy": "Copy Code",
+    "copied": "Copied!",
+    "failed": "Failed!",
+    "download": "Download .md",
+    "expand": "⛶ Expand",
+    "close_expand": "✕ Close Expand",
+    "edit_info": "Edit Mode — Changes are applied to Preview, Raw Code, and downloaded file."
+  },
+  "info": {
+    "header": "Information & Help Center",
+    "faq": {
+      "title": "💡 FAQ",
+      "header": "Frequently Asked Questions",
+      "items": [
+        { "category": "General", "q": "1. What is AI README Generator?", "a": "AI README Generator is a web-based application that automatically creates professional README.md files for your GitHub repositories using artificial intelligence (Gemini AI)." },
+        { "category": "General", "q": "2. Is this application free?", "a": "Yes, this application is free to use. It was developed as part of an Undergraduate Thesis research." },
+        { "category": "General", "q": "3. Who developed this application?", "a": "This application was developed by a student for Undergraduate Thesis research in the field of software engineering and artificial intelligence." },
+        { "category": "Usage", "q": "4. How do I use it?", "a": "1. Enter your GitHub repository URL.\n2. Choose your project purpose (Portfolio, Academic, or Open Source).\n3. Open Pro Mode for further customization (optional).\n4. Click the Generate button and wait for the result." },
+        { "category": "Usage", "q": "5. Must my repository be public?", "a": "Yes, currently the application only supports public repositories. Private repositories cannot be accessed." },
+        { "category": "Usage", "q": "6. Why does the generate process take so long?", "a": "The system needs to fetch all repository data (config files, directory structure, etc.) from GitHub first, then process it with Gemini AI. Time varies depending on the repository size." },
+        { "category": "Usage", "q": "7. Can the generated README be edited?", "a": "Yes! You can use the Edit mode on the results page to modify content before copying or downloading it." },
+        { "category": "Usage", "q": "8. Is the result always 100% accurate?", "a": "No. As a generative AI, Gemini can make technical errors (hallucinations). We strongly recommend users always review and edit the generated README before publishing." },
+        { "category": "Technical & Privacy", "q": "9. Why do I get a 'Too Many Requests' error?", "a": "This application relies on API quotas (GitHub & Google Gemini). If the hourly quota is exhausted, the system will temporarily reject requests. Please try again later." },
+        { "category": "Technical & Privacy", "q": "10. What data is taken from my repository?", "a": "The system only reads public metadata from the repository, such as project name, description, directory structure, and configuration files. No source code is permanently stored." },
+        { "category": "Technical & Privacy", "q": "11. Is my repository data stored?", "a": "No. Repository data is processed temporarily (in-memory) or in server memory only for README generation purposes, and is not stored in any database." },
+        { "category": "Technical & Privacy", "q": "12. What technologies are used?", "a": "Frontend: React (TypeScript) + Vite + Tailwind CSS\nBackend: Python (FastAPI)\nAI: Google Gemini API (model 2.5-flash)\nMethod: Structural Contextualization" }
+      ]
+    },
+    "privacy": {
+      "title": "🔒 Privacy Policy",
+      "header": "Privacy Policy",
+      "updated": "Last updated: April 2026",
+      "desc": "The AI README Generator application is committed to protecting user privacy. The repository URL data and preferences you enter are used exclusively for the purpose of GitHub API data analysis and processing by Google Gemini API.",
+      "points": [
+        "<strong>No Cookies:</strong> We do not use tracking cookies.",
+        "<strong>No Storage:</strong> We do not store repository data or generated results in our database.",
+        "<strong>Secret Security:</strong> All API Keys (Gemini/GitHub) are securely stored on the server-side (Backend) and never exposed to the public or user's browser.",
+        "<strong>Third Party:</strong> Data usage is subject to third-party privacy policies (GitHub & Google)."
+      ]
+    },
+    "tos": {
+      "title": "📋 Terms of Service",
+      "header": "Terms of Service",
+      "updated": "Last updated: April 2026",
+      "desc": "This application is provided 'as is' for academic purposes. Use of this library is allowed for professional or personal needs, but the developer is not responsible for any inaccuracies in results generated by generative AI.",
+      "points": [
+        "Prohibited from using for illegal purposes, API exploitation, or spamming.",
+        "<strong>Academic Integrity:</strong> Users are prohibited from misusing this tool for plagiarism. Modification and review are mandatory according to the academic honesty standards of each institution.",
+        "Users are fully responsible for content published based on AI generated results.",
+        "Service may change or be shut down at any time (Kill Switch) if API quotas have reached the maximum limit."
+      ]
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "app": {
+    "title": "AI README Generator",
+    "tagline": "Tempel tautan repositori GitHub untuk membuat file README.md.",
+    "footer": "© 2026 AI README Generator. Dibuat untuk keperluan akademik."
+  },
+  "presets": {
+    "header": "1. Pilih Tujuan Proyek",
+    "academic": {
+      "title": "Academic",
+      "desc": "Fokus pada struktur penelitian dan metodologi."
+    },
+    "opensource": {
+      "title": "Open Source",
+      "desc": "Fokus pada kontribusi dan dokumentasi teknis."
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "desc": "Fokus pada fitur utama dan showcase proyek."
+    }
+  },
+  "generator": {
+    "step2": "2. Tautan Repositori",
+    "placeholder": "https://github.com/username/repo",
+    "pro_mode": "Kustomisasi Manual (Pro Mode)",
+    "pro_mode_desc": "Sesuaikan setiap bagian README Anda secara mendalam.",
+    "groups": {
+      "foundation": "📌 Fondasi Proyek",
+      "foundation_desc": "(direkomendasikan)",
+      "general": "📋 Kelengkapan Umum",
+      "extra": "🚀 Informasi Tambahan"
+    },
+    "loading": {
+      "connect": "Menghubungkan ke GitHub...",
+      "fetch": "Mengambil data repositori...",
+      "analyze": "Menganalisis kode sumber...",
+      "generate": "Menghasilkan README dengan Gemini AI..."
+    },
+    "recommended": "Recommended",
+    "sections": {
+      "features": "Fitur Utama",
+      "installation": "Instalasi",
+      "usage": "Penggunaan",
+      "contributing": "Kontribusi",
+      "license": "Lisensi",
+      "configuration": "Konfigurasi",
+      "roadmap": "Roadmap",
+      "faq": "FAQ",
+      "badges": "Badget / Perisai",
+      "tech_stack": "Teknologi Utama",
+      "authors": "Penulis / Tim",
+      "directory_structure": "Struktur Direktori"
+    },
+    "errors": {
+      "empty_url": "URL tidak boleh kosong.",
+      "invalid_url": "Harap masukkan URL repositori GitHub yang valid.",
+      "api": {
+        "busy": "Server Gemini AI sedang kelebihan beban (overloaded) secara global. Ini bukan masalah kuota kamu. Coba lagi dalam beberapa menit. (Error 503)",
+        "quota": "Batas penggunaan (Quota) API telah tercapai. Silakan coba lagi nanti (Error 429).",
+        "fetch_failed": "Gagal mengambil data dari GitHub. Pastikan URL benar dan repositori bersifat publik.",
+        "repo_not_found": "Repositori GitHub tidak ditemukan. Harap periksa kembali URL Anda.",
+        "unknown": "Terjadi kesalahan tak terduga saat menghubungi layanan AI."
+      }
+    },
+    "button": {
+      "select_preset": "Pilih Tujuan Proyek Terlebih Dahulu...",
+      "generating": "Menghasilkan...",
+      "generate_prefix": "⚡ Generate Cepat",
+      "section_count": "seksi terpilih"
+    },
+    "options": {
+      "lang_label": "Bahasa Output",
+      "lang_id": "Bahasa Indonesia",
+      "lang_en": "English",
+      "tone_label": "Gaya Bahasa (Tone)",
+      "tone_prof": "Profesional",
+      "tone_tech": "Teknis",
+      "tone_casual": "Santai",
+      "tone_creative": "Kreatif",
+      "audience_label": "Target Audiens",
+      "audience_dev": "Developer",
+      "audience_user": "End-User (Pengguna Umum)",
+      "verbosity_label": "Panjang Output (Verbosity)",
+      "verbosity_full": "Detail & Lengkap",
+      "verbosity_min": "Singkat & Minimalis",
+      "logo_label": "Logo URL (Opsional)",
+      "screenshot_label": "Screenshot URL (Opsional)",
+      "visual_label": "Opsi Visual & Navigasi",
+      "emoji": "Sertakan Emoji",
+      "icons": "Ikon Teknologi",
+      "toc": "Daftar Isi (TOC)"
+    },
+    "warning": {
+      "title": "Ada Perubahan Manual",
+      "desc": "Mengganti tujuan proyek akan mereset pilihan seksi yang sudah Anda centang secara manual. Lanjutkan?",
+      "cancel": "Batal",
+      "continue": "Ya, Lanjutkan"
+    }
+  },
+  "readme": {
+    "header": "Hasil README",
+    "reset": "Buat Baru",
+    "pratinjau": "Pratinjau",
+    "raw": "Raw Code",
+    "edit": "Edit",
+    "copy": "Salin Kode",
+    "copied": "Disalin!",
+    "failed": "Gagal!",
+    "download": "Unduh .md",
+    "expand": "⛶ Expand",
+    "close_expand": "✕ Tutup Expand",
+    "edit_info": "Mode Edit — Perubahan diterapkan ke Pratinjau, Raw Code, dan file yang diunduh."
+  },
+  "info": {
+    "header": "Pusat Informasi & Bantuan",
+    "faq": {
+      "title": "💡 FAQ",
+      "header": "Frequently Asked Questions",
+      "items": [
+        { "category": "Umum", "q": "1. Apa itu AI README Generator?", "a": "AI README Generator adalah aplikasi berbasis web yang secara otomatis membuat file README.md profesional untuk repositori GitHub kamu, menggunakan teknologi kecerdasan buatan (Gemini AI)." },
+        { "category": "Umum", "q": "2. Apakah aplikasi ini gratis?", "a": "Ya, aplikasi ini gratis untuk digunakan. Aplikasi ini dikembangkan sebagai bagian dari penelitian Tugas Akhir." },
+        { "category": "Umum", "q": "3. Siapa yang membuat aplikasi ini?", "a": "Aplikasi ini dikembangkan oleh mahasiswa dalam rangka penelitian Tugas Akhir di bidang rekayasa perangkat lunak dan kecerdasan buatan." },
+        { "category": "Cara Penggunaan", "q": "4. Bagaimana cara menggunakannya?", "a": "1. Masukkan URL repositori GitHub.\n2. Pilih tujuan proyek kamu (Portfolio, Academic, atau Open Source).\n3. Buka Pro Mode untuk kustomisasi lebih lanjut (opsional).\n4. Klik tombol Generate dan tunggu hasilnya." },
+        { "category": "Cara Penggunaan", "q": "5. Apakah repositori saya harus bersifat publik?", "a": "Ya, saat ini aplikasi hanya mendukung repositori yang bersifat publik. Repositori privat tidak dapat diakses." },
+        { "category": "Cara Penggunaan", "q": "6. Kenapa proses generate memakan waktu lama?", "a": "Sistem perlu mengambil seluruh data repositori (file konfigurasi, struktur direktori, dsb.) dari GitHub terlebih dahulu, kemudian memprosesnya dengan Gemini AI. Waktu bervariasi tergantung ukuran repositori." },
+        { "category": "Cara Penggunaan", "q": "7. Apakah hasil README bisa diedit setelah dibuat?", "a": "Ya! Kamu bisa menggunakan mode Edit di halaman hasil untuk menyunting konten sebelum menyalinnya atau mengunduhnya." },
+        { "category": "Cara Penggunaan", "q": "8. Apakah hasilnya selalu 100% akurat?", "a": "Tidak. Sebagai AI generatif, Gemini bisa melakukan kesalahan teknis (hallucination). Kami sangat menyarankan pengguna untuk selalu meninjau ulang dan menyunting hasil README sebelum dipublikasikan." },
+        { "category": "Teknis & Privasi", "q": "9. Kenapa saya mendapat error 'Too Many Requests'?", "a": "Aplikasi ini bergantung pada kuota API (GitHub & Google Gemini). Jika kuota per jam habis, sistem akan menolak permintaan sementara. Silakan coba lagi beberapa saat kemudian." },
+        { "category": "Teknis & Privasi", "q": "10. Data apa saja yang diambil dari repositori saya?", "a": "Sistem hanya membaca metadata publik dari repositori, seperti nama proyek, deskripsi, struktur direktori, dan file konfigurasi. Tidak ada kode sumber yang disimpan secara permanen." },
+        { "category": "Teknis & Privasi", "q": "11. Apakah data repositori saya disimpan?", "a": "Tidak. Data repositori diproses secara sementara (in-memory) atau di memori server hanya untuk keperluan pembuatan README, dan tidak tersimpan di database manapun." },
+        { "category": "Teknis & Privasi", "q": "12. Teknologi apa yang digunakan?", "a": "Frontend: React (TypeScript) + Vite + Tailwind CSS\nBackend: Python (FastAPI)\nAI: Google Gemini API (model 2.5-flash)\nMetode: Structural Contextualization" }
+      ]
+    },
+    "privacy": {
+      "title": "🔒 Privacy Policy",
+      "header": "Kebijakan Privasi",
+      "updated": "Terakhir diperbarui: April 2026",
+      "desc": "Aplikasi AI README Generator berkomitmen untuk melindungi privasi pengguna. Data URL repositori dan preferensi yang kamu masukkan digunakan secara eksklusif untuk tujuan analisis data GitHub API dan pemrosesan oleh Google Gemini API.",
+      "points": [
+        "<strong>No Cookies:</strong> Kami tidak menggunakan cookies pelacakan.",
+        "<strong>No Storage:</strong> Kami tidak menyimpan data repositori atau hasil generate di database kami.",
+        "<strong>Secret Security:</strong> Seluruh API Key (Gemini/GitHub) disimpan dengan aman di sisi server (Backend) dan tidak pernah diekspos ke publik atau browser pengguna.",
+        "<strong>Third Party:</strong> Penggunaan data tunduk pada kebijakan privasi pihak ketiga (GitHub & Google)."
+      ]
+    },
+    "tos": {
+      "title": "📋 Terms of Service",
+      "header": "Syarat & Ketentuan",
+      "updated": "Terakhir diperbarui: April 2026",
+      "desc": "Aplikasi ini disediakan 'sebagaimana adanya' untuk tujuan akademik. Penggunaan library ini diperbolehkan untuk kebutuhan profesional maupun pribadi, namun pengembang tidak bertanggung jawab atas ketidakakuratan hasil yang dihasilkan oleh AI generatif.",
+      "points": [
+        "Dilarang menggunakan untuk tujuan ilegal, eksploitasi API, atau spamming.",
+        "<strong>Integritas Akademik:</strong> Pengguna dilarang menyalahgunakan alat ini untuk plagiarisme. Modifikasi dan peninjauan ulang wajib dilakukan sesuai standar kejujuran akademik masing-masing institusi.",
+        "Pengguna bertanggung jawab penuh atas konten yang dipublikasikan berdasarkan hasil generate AI.",
+        "Layanan dapat berubah atau dimatikan sewaktu-waktu (Kill Switch) jika kuota API telah mencapai batas maksimal."
+      ]
+    }
+  }
+}

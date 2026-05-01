@@ -6,11 +6,18 @@ node_modules/
 package-lock.json
 
 # Python
-api/__pycache__/
-api/venv/ # Jika Anda menggunakan venv di direktori api
+**/__pycache__/
+*.pyc
+api/venv/
+.venv/
 
 # Frontend
 frontend/dist/
 frontend/node_modules/
 frontend/package-lock.json
 .vercel
+dist/
+.vscode/
+
+# Data & Docs
+docs/

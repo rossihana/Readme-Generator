@@ -1,7 +1,5 @@
-from fastapi.responses import JSONResponse
-import asyncio
-
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -10,6 +8,7 @@ import httpx
 import base64
 import json
 import re
+import asyncio
 
 load_dotenv()
 
@@ -43,25 +42,39 @@ app.add_middleware(
 
 # Ambil variabel lingkungan
 GITHUB_PAT = os.getenv("GITHUB_PAT")
-OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Pastikan variabel lingkungan ada
+# Validasi variabel lingkungan
 if not GITHUB_PAT:
-    raise ValueError("GITHUB_PAT environment variable not set.")
-if not OPENROUTER_KEY:
-    raise ValueError("OPENROUTER_KEY environment variable not set.")
-# GOOGLE_API_KEY is optional - only required when using Google AI provider
+    print("WARNING: GITHUB_PAT environment variable not set.")
+if not GOOGLE_API_KEY:
+    print("WARNING: GOOGLE_API_KEY environment variable not set.")
 
 GITHUB_HEADERS = {
     "Authorization": f"token {GITHUB_PAT}",
     "Accept": "application/vnd.github.v3+json",
 }
 
+GITHUB_URL_REGEX = re.compile(r"^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9_.-]+(\/)?$")
+
+class OutputPreferences(BaseModel):
+    projectPurpose: str = "portfolio"
+    language: str = "indonesian"
+    tone: str = "professional"
+    complexity: str = "standard"
+    includeSections: list[str] = ["Features", "Installation", "Usage", "Contributing", "License"]
+    # New Phase 2 fields
+    targetAudience: str = "developer"
+    verbosity: str = "comprehensive"
+    useEmojis: bool = True
+    useIcons: bool = True
+    logoUrl: str = ""
+    screenshotUrl: str = ""
+    includeTOC: bool = True
+
 class GitHubUrl(BaseModel):
     githubUrl: str
-    aiProvider: str = "google"  # Default to google
+    preferences: OutputPreferences = OutputPreferences()
 
 def decode_base64_content(encoded_content: str) -> str:
     """Mendekode konten Base64."""
@@ -162,22 +175,100 @@ async def fetch_github_data(github_url: str, github_pat: str) -> dict:
 
         except httpx.HTTPStatusError as e:
             if e.response is not None and e.response.status_code == 404:
-                raise HTTPException(status_code=404, detail="Repositori GitHub tidak ditemukan.")
-            raise HTTPException(status_code=500, detail=f"Terjadi kesalahan saat mengambil data GitHub: {e.response.text}")
+                raise HTTPException(status_code=404, detail="generator.errors.api.repo_not_found")
+            raise HTTPException(status_code=500, detail="generator.errors.api.fetch_failed")
         except httpx.RequestError as e:
             raise HTTPException(status_code=500, detail=f"Network error: {e}")
     return repo_data
 
-def build_llm_prompt(repo_data: dict) -> list:
-    """Membangun prompt yang komprehensif untuk LLM."""
+def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
+    """Membangun prompt yang komprehensif untuk LLM dengan preferensi pengguna."""
+    
+    # Map tone to instruction
+    tone_instructions = {
+        "professional": "Gunakan gaya bahasa profesional, formal, dan objektif.",
+        "technical": "Gunakan gaya bahasa teknis, mendalam, dan fokus pada detail implementasi.",
+        "casual": "Gunakan gaya bahasa santai, ramah, dan mudah dimengerti.",
+        "creative": "Gunakan gaya bahasa kreatif, menarik, dan penuh semangat."
+    }
+    
+    selected_tone = tone_instructions.get(preferences.tone.lower(), tone_instructions["professional"])
+    
+    # Map language
+    language_map = {
+        "indonesian": "Bahasa Indonesia",
+        "english": "Bahasa Inggris"
+    }
+    selected_language = language_map.get(preferences.language.lower(), "Bahasa Indonesia")
+
+    # Map target audience
+    audience_instructions = {
+        "developer": "Target audiens Anda adalah pengembang (developers). Fokus pada detail teknis, instruksi build, arsitektur, dan cara kontribusi.",
+        "end-user": "Target audiens Anda adalah pengguna akhir (end-users). Fokus pada instruksi instalasi sederhana, cara penggunaan fitur utama, dan kemudahan navigasi."
+    }
+    selected_audience = audience_instructions.get(preferences.targetAudience.lower(), audience_instructions["developer"])
+
+    # Map verbosity
+    verbosity_instructions = {
+        "minimal": "Berikan penjelasan yang singkat, padat, dan efisien (minimalis).",
+        "comprehensive": "Berikan penjelasan yang mendalam, detail, dan komprehensif."
+    }
+    selected_verbosity = verbosity_instructions.get(preferences.verbosity.lower(), verbosity_instructions["comprehensive"])
+
+    # Emoji & Icons
+    emoji_instr = "Sertakan emoji yang relevan untuk membuat README lebih menarik." if preferences.useEmojis else "Jangan gunakan emoji sama sekali."
+    icon_instr = "Gunakan ikon atau badge teknologi (seperti dari Shields.io atau Simple Icons) untuk bagian daftar teknologi." if preferences.useIcons else "Tampilkan daftar teknologi sebagai teks biasa atau list."
+    
+    # Table of Contents
+    toc_instr = "Buatkan daftar isi (Table of Contents) di bagian atas README dengan link jangkar yang berfungsi." if preferences.includeTOC else ""
+
+    # Map Project Purpose
+    purpose_key = (preferences.projectPurpose or "portfolio").lower()
+    purpose_instructions = {
+        "portfolio": "Tulis ini sebagai proyek portofolio atau profesional. Tonjolkan nilai jual, pengalaman, fitur unik, demo aplikasi, dan kemudahan penggunaan agar menarik bagi rekruter, client, atau publik.",
+        "academic": "Tulis ini sebagai dokumentasi Tugas Akhir, skripsi, atau proyek akademik/research. Gunakan bahasa yang formal dan objektif. Hilangkan bahasa marketing (sales). Fokus pada penjelasan teori, metodologi riset, spesifikasi arsitektur teknis, dan hasil eksperimen secara rinci.",
+        "opensource": "Tulis ini sebagai library open-source publik. Wajib memberikan panduan kontribusi yang jelas, environment setup untuk developer asing yang ingin berkolaborasi, dan wajib menyertakan referensi Lisensi."
+    }
+    selected_purpose = purpose_instructions.get(purpose_key, purpose_instructions["portfolio"])
+
+    # Define the strict order of sections as per Implementation Plan V2
+    SECTION_ORDER = [
+        "Logo", "Badges", "Project Description", "Screenshot",
+        "Tech Stack", "Features", "Directory Structure", "Installation",
+        "Configuration", "Usage", "Contributing", "Authors",
+        "Roadmap", "FAQ", "License"
+    ]
+
+    # Filter and sort includeSections based on the defined order
+    requested_sections = [s for s in SECTION_ORDER if s in preferences.includeSections]
+    
+    # Re-sort to maintain order
+    final_sections = [s for s in SECTION_ORDER if s in requested_sections]
+
     system_prompt = (
-        "Anda adalah ahli dokumentasi. Tugas Anda adalah membuat file README.md yang lengkap dan profesional "
-        "untuk proyek GitHub yang diberikan. README harus mencakup deskripsi proyek, fitur utama, "
-        "teknologi yang digunakan, cara instalasi, cara penggunaan, dan kontribusi. "
-        "Gunakan format Markdown yang jelas dan mudah dibaca. "
-        "Sertakan emoji yang relevan untuk membuat README lebih menarik. "
-        "Pastikan untuk menyertakan bagian 'Instalasi' dan 'Penggunaan' yang jelas berdasarkan file konfigurasi yang disediakan. "
-        "Gunakan struktur direktori lengkap yang diberikan untuk mendeskripsikan struktur proyek secara akurat."
+        f"Anda adalah seorang Technical Writer ahli. Tugas Anda adalah membuat file README.md yang akurat, informatif, dan profesional "
+        f"dalam {selected_language} untuk proyek GitHub yang diberikan.\n"
+        f"Tujuan Proyek: {selected_purpose}\n"
+        f"Target Audiens: {selected_audience}\n"
+        f"Instruksi Gaya Bahasa: {selected_tone}\n"
+        f"Tingkat Detail per Seksi: {selected_verbosity}\n"
+        f"{emoji_instr}\n"
+        f"{icon_instr}\n"
+        f"{toc_instr}\n\n"
+        "ATURAN WAJIB:\n"
+        "1. README HANYA boleh mencakup bagian-bagian berikut dalam urutan yang sudah ditentukan. "
+        "JANGAN tambahkan bagian lain di luar daftar ini:\n" +
+        "\n".join([f"   {i+1}. {section}" for i, section in enumerate(final_sections)]) + "\n\n"
+        "2. Setiap seksi harus konsisten dengan 'Tingkat Detail per Seksi' yang telah ditentukan. "
+        "Jangan mempersingkat atau memperpanjang konten secara tidak proporsional.\n"
+        "3. Basekan seluruh konten teknis (instalasi, konfigurasi, dll.) pada data nyata dari file konfigurasi yang disediakan. "
+        "JANGAN mengarang perintah atau dependensi yang tidak ada.\n"
+        "4. Jika informasi untuk suatu seksi sangat minim atau tidak tersedia dari data repositori, "
+        "tuliskan seksi tersebut dengan konten placeholder yang jelas, misalnya: "
+        "'_(Tambahkan deskripsi di sini)_' atau '_(Belum tersedia)_'. "
+        "Jangan lewati atau hapus seksi yang diminta.\n"
+        "5. Output HARUS langsung dimulai dengan konten Markdown (diawali `#` atau badge). "
+        "JANGAN sertakan kata pembuka seperti 'Tentu!', 'Berikut adalah', atau 'Semoga membantu'.\n"
     )
 
     user_prompt = f"""
@@ -185,13 +276,27 @@ def build_llm_prompt(repo_data: dict) -> list:
 
     URL Repositori: {repo_data.get("html_url", "Tidak tersedia")}
     Deskripsi Proyek: {repo_data.get("description", "Tidak ada deskripsi.")}
-    Bahasa Utama: {repo_data.get("language", "Tidak diketahui.")}
+    Bahasa Utama Proyek: {repo_data.get("language", "Tidak diketahui.")}
     Struktur Direktori Lengkap:
     {json.dumps(repo_data.get("full_directory_structure", {}), indent=2)}
     Daftar File di Root: {', '.join(repo_data.get("files", []))}
-
-    --- Konteks File Kunci ---
     """
+
+    # Add specific instructions for advanced sections
+    if "Badges" in final_sections:
+        user_prompt += "\n- Badges: Buatkan badge status menggunakan Shields.io (build, license, version, stars) menggunakan URL repo ini."
+    if "Tech Stack" in final_sections:
+        user_prompt += "\n- Tech Stack: List framework dan library utama yang ditemukan di file konfigurasi."
+    if "Directory Structure" in final_sections:
+        user_prompt += "\n- Directory Structure: Berikan gambaran pohon direktori yang rapi dan penjelasan singkat folder utama."
+
+    # Logo & Screenshot
+    if preferences.logoUrl:
+        user_prompt += f"\nLogo URL: {preferences.logoUrl}"
+    if preferences.screenshotUrl:
+        user_prompt += f"\nScreenshot/Demo URL: {preferences.screenshotUrl}"
+
+    user_prompt += "\n\n--- Konteks File Kunci ---"
 
     if repo_data["key_files_content"].get("package.json"):
         user_prompt += f"\n\nKonten package.json:\n```json\n{repo_data['key_files_content']['package.json']}\n```"
@@ -202,9 +307,20 @@ def build_llm_prompt(repo_data: dict) -> list:
 
 --- Akhir Konteks ---
 
-Buat README.md yang informatif dan menarik berdasarkan informasi di atas.
-Fokus pada bagian 'Instalasi' dan 'Penggunaan' dengan instruksi yang jelas.
+Buat README.md yang informatif dan menarik dalam {selected_language} berdasarkan informasi di atas.
+WAJIB ikuti urutan seksi ini: {', '.join(final_sections)}.
+{f"Pastikan untuk menyertakan instruksi 'Instalasi' dan 'Penggunaan' yang jelas." if "Installation" in preferences.includeSections or "Usage" in preferences.includeSections else ""}
 Deskripsikan struktur proyek secara akurat berdasarkan 'Struktur Direktori Lengkap' yang diberikan.
+"""
+
+    if preferences.logoUrl:
+        user_prompt += f"\nTempatkan logo dari URL {preferences.logoUrl} di bagian paling atas README."
+    if preferences.screenshotUrl:
+        user_prompt += f"\nTempatkan screenshot/demo dari URL {preferences.screenshotUrl} setelah deskripsi proyek atau di bagian yang sesuai."
+
+    user_prompt += """
+PENTING: Jangan berikan teks apapun selain konten Markdown. Jangan ada kalimat pembuka seperti 'Tentu, ini hasil generasinya'. Selalu mulai langsung dengan `# Judul Proyek` atau konten README.
+JANGAN sertakan bagian yang tidak ada dalam daftar yang diminta di atas (kecuali License yang WAJIB selalu ada).
 """
 
     return [
@@ -212,49 +328,21 @@ Deskripsikan struktur proyek secara akurat berdasarkan 'Struktur Direktori Lengk
         {"role": "user", "content": user_prompt}
     ]
 
-async def call_deepseek(prompt_messages: list, openrouter_key: str, openrouter_model: str) -> str:
-    headers = {
-        "Authorization": f"Bearer {openrouter_key}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": openrouter_model,
-        "messages": prompt_messages
-    }
-    
-    max_retries = 3
-    base_delay = 2
-    
-    async with httpx.AsyncClient() as client:
-        for attempt in range(max_retries):
-            try:
-                response = await client.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=60.0)
-                response.raise_for_status()
-                return response.json()["choices"][0]["message"]["content"]
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code == 429:
-                    if attempt < max_retries - 1:
-                        wait_time = base_delay * (2 ** attempt) # 2s, 4s, 8s
-                        print(f"Rate limit hit (429). Retrying in {wait_time}s...")
-                        await asyncio.sleep(wait_time)
-                        continue
-                    else:
-                        raise HTTPException(status_code=429, detail="Server AI sedang sibuk (Rate Limit). Coba beberapa saat lagi.")
-                raise e
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error calling AI Provider: {str(e)}")
-
 async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
     """Call Google AI Studio API directly (not through OpenRouter)"""
-    # Convert OpenAI-style messages to Google's format
-    # Google expects: {"contents": [{"parts": [{"text": "..."}]}]}
+    # Google Gemini does NOT support 'system' role.
+    # Merge system prompt into the first user message.
     contents = []
+    system_text = ""
     for msg in prompt_messages:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append({
-            "role": role,
-            "parts": [{"text": msg["content"]}]
-        })
+        if msg["role"] == "system":
+            system_text = msg["content"]
+        elif msg["role"] == "user":
+            combined = f"{system_text}\n\n{msg['content']}" if system_text else msg["content"]
+            contents.append({"role": "user", "parts": [{"text": combined}]})
+            system_text = ""  # only prepend once
+        elif msg["role"] == "assistant":
+            contents.append({"role": "model", "parts": [{"text": msg["content"]}]})
     
     payload = {
         "contents": contents,
@@ -269,7 +357,7 @@ async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={google_api_key}"
     
     max_retries = 3
-    base_delay = 2
+    base_delay = 10  # 10s, 20s between retries to respect free tier RPM
     
     async with httpx.AsyncClient() as client:
         for attempt in range(max_retries):
@@ -280,17 +368,37 @@ async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
                 # Extract text from Google's response format
                 return result["candidates"][0]["content"]["parts"][0]["text"]
             except httpx.HTTPStatusError as e:
-                if e.response.status_code == 429:
+                # Handle Rate Limit (429) and Service Unavailable (503) with Retry
+                if e.response.status_code in [429, 503]:
+                    # Log the actual response body to understand the root cause
+                    try:
+                        err_body = e.response.json()
+                        print(f"[DEBUG] Google {e.response.status_code} response body: {err_body}")
+                    except Exception:
+                        print(f"[DEBUG] Google {e.response.status_code} raw body: {e.response.text[:500]}")
+                    
                     if attempt < max_retries - 1:
                         wait_time = base_delay * (2 ** attempt)
-                        print(f"Google AI rate limit hit (429). Retrying in {wait_time}s...")
+                        reason = "rate limit (429)" if e.response.status_code == 429 else "service busy (503)"
+                        print(f"Google AI {reason} hit. Retrying in {wait_time}s... (Attempt {attempt + 1})")
                         await asyncio.sleep(wait_time)
                         continue
                     else:
-                        raise HTTPException(status_code=429, detail="Google AI sedang sibuk (Rate Limit). Coba beberapa saat lagi.")
-                raise HTTPException(status_code=e.response.status_code, detail=f"Google AI error: {e.response.text}")
+                        error_key = "generator.errors.api.quota" if e.response.status_code == 429 else "generator.errors.api.busy"
+                        raise HTTPException(status_code=e.response.status_code, detail=error_key)
+                
+                # Default safety: parse JSON if possible, otherwise return generic unknown
+                try:
+                    err_json = e.response.json()
+                    err_msg = err_json.get("error", {}).get("message", "generator.errors.api.unknown")
+                    raise HTTPException(status_code=e.response.status_code, detail=f"Google AI: {err_msg}")
+                except:
+                    raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
+
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Error calling Google AI: {str(e)}")
+                # Log the actual internal error for debugging but show user-friendly msg
+                print(f"Internal Error in call_google_ai: {str(e)}")
+                raise HTTPException(status_code=500, detail="generator.errors.api.unknown")
 
 
 @app.get("/")
@@ -303,36 +411,18 @@ async def read_root():
 async def generate_readme_api(github_url_data: GitHubUrl):
     """Endpoint untuk menghasilkan README.md dari URL GitHub."""
     github_url = github_url_data.githubUrl.strip()
-    ai_provider = github_url_data.aiProvider.strip().lower()
     
     if not GITHUB_URL_REGEX.match(github_url):
         raise HTTPException(status_code=400, detail="Invalid GitHub URL provided.")
-    
-    if ai_provider not in ["google", "openrouter"]:
-        raise HTTPException(status_code=400, detail="Invalid AI provider. Choose 'google' or 'openrouter'.")
-
-    url_parts = github_url.split('/')
-    owner = url_parts[3]
-    repo = url_parts[4].replace(".git", "") # Hapus .git jika ada
+    if not GOOGLE_API_KEY:
+        raise HTTPException(status_code=500, detail="Google API Key tidak tersedia.")
 
     try:
         github_data = await get_github_directory_contents(github_url, GITHUB_PAT)
-        prompt_messages = build_llm_prompt(github_data)
-        
-        # Route to appropriate AI provider
-        if ai_provider == "google":
-            if not GOOGLE_API_KEY:
-                raise HTTPException(status_code=500, detail="Google API Key tidak tersedia. Silakan gunakan OpenRouter atau hubungi administrator.")
-            readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEY)
-        else:  # openrouter
-            readme_content = await call_deepseek(prompt_messages, OPENROUTER_KEY, OPENROUTER_MODEL)
-        
+        prompt_messages = build_llm_prompt(github_data, github_url_data.preferences)
+        readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEY)
         return {"readme": readme_content}
     except HTTPException as e:
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
-
-
-
-GITHUB_URL_REGEX = re.compile(r"^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9_.-]+(\/)?$")
