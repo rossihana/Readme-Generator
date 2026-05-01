@@ -5,7 +5,7 @@
     "footer": "© 2026 AI README Generator. Created for academic purposes."
   },
   "presets": {
-    "header": "1. Choose Project Purpose",
+    "header": "2. Choose Project Purpose",
     "academic": {
       "title": "Academic",
       "desc": "Focus on research structure and methodology."
@@ -20,7 +20,7 @@
     }
   },
   "generator": {
-    "step2": "2. Repository Link",
+    "step2": "1. Repository Link",
     "placeholder": "https://github.com/username/repo",
     "pro_mode": "Manual Customization (Pro Mode)",
     "pro_mode_desc": "Customize every section of your README in depth.",

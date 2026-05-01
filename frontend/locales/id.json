@@ -5,7 +5,7 @@
     "footer": "© 2026 AI README Generator. Dibuat untuk keperluan akademik."
   },
   "presets": {
-    "header": "1. Pilih Tujuan Proyek",
+    "header": "2. Pilih Tujuan Proyek",
     "academic": {
       "title": "Academic",
       "desc": "Fokus pada struktur penelitian dan metodologi."
@@ -20,7 +20,7 @@
     }
   },
   "generator": {
-    "step2": "2. Tautan Repositori",
+    "step2": "1. Tautan Repositori",
     "placeholder": "https://github.com/username/repo",
     "pro_mode": "Kustomisasi Manual (Pro Mode)",
     "pro_mode_desc": "Sesuaikan setiap bagian README Anda secara mendalam.",
