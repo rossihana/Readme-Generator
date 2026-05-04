@@ -94,6 +94,8 @@
       "logo_placeholder": "https://example.com/logo.png",
       "screenshot_label": "Screenshot URL (Opsional)",
       "screenshot_placeholder": "https://example.com/screenshot.png",
+      "deploy_label": "Deployment / Live Link (URL Aplikasi Jadi)",
+      "deploy_placeholder": "https://proyek-kamu.vercel.app",
       "visual_label": "Opsi Visual & Navigasi",
       "emoji": "Sertakan Emoji",
       "icons": "Ikon Teknologi",

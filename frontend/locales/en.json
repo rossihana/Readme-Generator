@@ -94,6 +94,8 @@
       "logo_placeholder": "https://example.com/logo.png",
       "screenshot_label": "Screenshot URL (Optional)",
       "screenshot_placeholder": "https://example.com/screenshot.png",
+      "deploy_label": "Deployment / Live Link (Live App URL)",
+      "deploy_placeholder": "https://your-project.vercel.app",
       "visual_label": "Visual & Navigation Options",
       "emoji": "Include Emojis",
       "icons": "Tech Icons",

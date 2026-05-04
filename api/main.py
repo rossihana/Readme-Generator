@@ -92,6 +92,7 @@ class OutputPreferences(BaseModel):
     useIcons: bool = True
     logoUrl: str = ""
     screenshotUrl: str = ""
+    deployUrl: str = ""
     includeTOC: bool = True
 
 class GitHubUrl(BaseModel):
@@ -369,11 +370,13 @@ Daftar File di Root: {', '.join(repo_data.get("files", []))}
     if "Directory Structure" in final_sections:
         user_prompt += "\n- Directory Structure: Berikan gambaran pohon direktori yang rapi dan penjelasan singkat folder utama."
 
-    # Logo & Screenshot
+    # Logo, Screenshot, & Deployment
     if preferences.logoUrl:
         user_prompt += f"\nLogo URL: {preferences.logoUrl}"
     if preferences.screenshotUrl:
-        user_prompt += f"\nScreenshot/Demo URL: {preferences.screenshotUrl}"
+        user_prompt += f"\nScreenshot/Demo Image URL: {preferences.screenshotUrl}"
+    if preferences.deployUrl:
+        user_prompt += f"\nDeployment/Live App URL: {preferences.deployUrl}"
 
     user_prompt += "\n\n--- Konteks File Kunci ---"
 
@@ -407,6 +410,8 @@ PANDUAN KHUSUS BERDASARKAN PRESET:
         user_prompt += f"\nTempatkan logo dari URL {preferences.logoUrl} di bagian paling atas README."
     if preferences.screenshotUrl:
         user_prompt += f"\nTempatkan screenshot/demo dari URL {preferences.screenshotUrl} setelah deskripsi proyek atau di bagian yang sesuai."
+    if preferences.deployUrl:
+        user_prompt += f"\nJika ada Deployment URL ({preferences.deployUrl}), tampilkan sebagai link 'Live Demo' atau 'Visit Website' yang menonjol di bagian atas (setelah deskripsi) atau di bagian yang relevan."
 
     user_prompt += """
 PENTING: Jangan berikan teks apapun selain konten Markdown. Jangan ada kalimat pembuka seperti 'Tentu, ini hasil generasinya'. Selalu mulai langsung dengan `# Judul Proyek` atau konten README.

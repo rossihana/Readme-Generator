@@ -22,8 +22,10 @@ dist/
 # Data & Docs
 docs/
 
-# Testing (Playwright)
+# Testing
+tests/
 test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+playwright.config.ts

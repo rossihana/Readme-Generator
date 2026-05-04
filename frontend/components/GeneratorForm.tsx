@@ -15,6 +15,7 @@ interface OutputPreferences {
   useIcons: boolean;
   logoUrl: string;
   screenshotUrl: string;
+  deployUrl: string;
   includeTOC: boolean;
 }
 
@@ -59,6 +60,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
     useIcons: true,
     logoUrl: '',
     screenshotUrl: '',
+    deployUrl: '',
     includeTOC: true
   });
   const [error, setError] = useState<string | null>(null);
@@ -373,6 +375,19 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   onChange={(e) => setPreferences({ ...preferences, screenshotUrl: e.target.value })}
                   className="w-full bg-gray-800 border border-gray-600 rounded py-2 px-3 text-sm text-gray-200 focus:ring-1 focus:ring-purple-500"
                   placeholder={t('generator.options.screenshot_placeholder')}
+                />
+              </div>
+
+              <div className="col-span-1 sm:col-span-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {t('generator.options.deploy_label')}
+                </label>
+                <input
+                  type="text"
+                  value={preferences.deployUrl}
+                  onChange={(e) => setPreferences({ ...preferences, deployUrl: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-600 rounded py-2 px-3 text-sm text-gray-200 focus:ring-1 focus:ring-purple-500"
+                  placeholder={t('generator.options.deploy_placeholder')}
                 />
               </div>
             </div>
