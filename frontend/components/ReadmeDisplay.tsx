@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
 import { CopyIcon, DownloadIcon } from './icons';
 
 interface ReadmeDisplayProps {
@@ -87,7 +88,11 @@ export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset,
 
   const PreviewContent = () => (
     <div className="p-8 markdown-body bg-transparent !text-gray-100" style={previewStyles}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]} 
+        rehypePlugins={[rehypeSlug]}
+        components={markdownComponents}
+      >
         {editedContent}
       </ReactMarkdown>
     </div>

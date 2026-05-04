@@ -252,7 +252,15 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
     icon_instr = "Gunakan ikon atau badge teknologi (seperti dari Shields.io atau Simple Icons) untuk bagian daftar teknologi." if preferences.useIcons else "Tampilkan daftar teknologi sebagai teks biasa atau list."
     
     # Table of Contents
-    toc_instr = "Buatkan daftar isi (Table of Contents) di bagian atas README dengan link jangkar yang berfungsi." if preferences.includeTOC else ""
+    toc_instr = (
+        "Buatkan daftar isi (Table of Contents) di bagian atas README. "
+        "ATURAN JANGKAR (ANCHOR): Link jangkar harus mengikuti aturan slug GitHub: "
+        "1. Gunakan huruf kecil semua. "
+        "2. Ganti spasi dengan tanda hubung (-). "
+        "3. Hapus semua karakter non-alfanumerik (seperti tanda kurung, titik, dll). "
+        "4. PENTING: Jika judul mengandung emoji (misal: ## 🚀 Fitur), GitHub akan menyisipkan tanda hubung di depan ID-nya. "
+        "Pastikan link daftar isi Anda sinkron dengan ID tersebut (misal: [#fitur] atau [#-fitur] tergantung posisi emoji)."
+    ) if preferences.includeTOC else ""
 
     # Map Project Purpose
     purpose_key = (preferences.projectPurpose or "portfolio").lower()
