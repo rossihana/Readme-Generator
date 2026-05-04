@@ -42,13 +42,35 @@ app.add_middleware(
 
 # Ambil variabel lingkungan
 GITHUB_PAT = os.getenv("GITHUB_PAT")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+# Load keys from separate variables (GOOGLE_API_KEY_1, GOOGLE_API_KEY_2, etc.)
+GOOGLE_API_KEYS = []
+i = 1
+while True:
+    key = os.getenv(f"GOOGLE_API_KEY_{i}")
+    if not key:
+        # Fallback for the first key without index if exist
+        if i == 1:
+            base_key = os.getenv("GOOGLE_API_KEY")
+            if base_key:
+                GOOGLE_API_KEYS.append(base_key.strip().strip('"').strip("'"))
+        break
+    GOOGLE_API_KEYS.append(key.strip().strip('"').strip("'"))
+    i += 1
+
+# Debug: Show masked keys to verify loading
+print(f"[DEBUG] System found {len(GOOGLE_API_KEYS)} keys.", flush=True)
+for idx, k in enumerate(GOOGLE_API_KEYS):
+    print(f"[DEBUG] Key-{idx+1} (Len:{len(k)}): {k[:14]}...{k[-10:]}", flush=True)
+
+# Global counter for round-robin rotation
+api_key_index = 0
 
 # Validasi variabel lingkungan
 if not GITHUB_PAT:
     print("WARNING: GITHUB_PAT environment variable not set.")
-if not GOOGLE_API_KEY:
-    print("WARNING: GOOGLE_API_KEY environment variable not set.")
+if not GOOGLE_API_KEYS:
+    print("WARNING: GOOGLE_API_KEYS (or GOOGLE_API_KEY) environment variable not set.")
 
 GITHUB_HEADERS = {
     "Authorization": f"token {GITHUB_PAT}",
@@ -130,9 +152,19 @@ async def fetch_github_data(github_url: str, github_pat: str) -> dict:
             repo_info_response = await client.get(repo_info_url, headers=GITHUB_HEADERS)
             repo_info_response.raise_for_status()
             repo_info = repo_info_response.json()
+            repo_data["name"] = repo_info.get("name")
             repo_data["description"] = repo_info.get("description", "Tidak ada deskripsi.")
             repo_data["language"] = repo_info.get("language", "Tidak diketahui.")
             repo_data["html_url"] = repo_info.get("html_url", f"https://github.com/{owner}/{repo}")
+            repo_data["owner"] = repo_info.get("owner", {})
+            
+            # Panggilan tambahan: Mendapatkan kontributor
+            contributors_url = f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page=5"
+            contributors_response = await client.get(contributors_url, headers=GITHUB_HEADERS)
+            if contributors_response.status_code == 200:
+                repo_data["contributors"] = contributors_response.json()
+            else:
+                repo_data["contributors"] = []
 
             # Fungsi bantu rekursif untuk mengambil isi subdirektori
             async def get_directory_contents_async(dir_path: str = "") -> dict:
@@ -225,9 +257,25 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
     # Map Project Purpose
     purpose_key = (preferences.projectPurpose or "portfolio").lower()
     purpose_instructions = {
-        "portfolio": "Tulis ini sebagai proyek portofolio atau profesional. Tonjolkan nilai jual, pengalaman, fitur unik, demo aplikasi, dan kemudahan penggunaan agar menarik bagi rekruter, client, atau publik.",
-        "academic": "Tulis ini sebagai dokumentasi Tugas Akhir, skripsi, atau proyek akademik/research. Gunakan bahasa yang formal dan objektif. Hilangkan bahasa marketing (sales). Fokus pada penjelasan teori, metodologi riset, spesifikasi arsitektur teknis, dan hasil eksperimen secara rinci.",
-        "opensource": "Tulis ini sebagai library open-source publik. Wajib memberikan panduan kontribusi yang jelas, environment setup untuk developer asing yang ingin berkolaborasi, dan wajib menyertakan referensi Lisensi."
+        "portfolio": (
+            "Tulis ini sebagai proyek portofolio profesional. "
+            "Fokus pada 'Value Proposition' (nilai jual), pengalaman pengguna, fitur unik, dan kemudahan penggunaan. "
+            "Pada bagian 'Installation' & 'Usage', buatlah instruksi yang cepat dan efisien (quick start) agar rekruter bisa melihat hasilnya tanpa hambatan."
+        ),
+        "academic": (
+            "Tulis ini sebagai dokumentasi proyek akademik, riset, atau Tugas Akhir. "
+            "Gunakan bahasa yang formal, objektif, dan teknis. Hindari bahasa pemasaran. "
+            "Pada bagian 'Features', fokus pada kapabilitas sistem dan metodologi teknis. "
+            "Pada bagian 'Installation', fokus pada reproduksibilitas (setup lingkungan riset, dependensi spesifik). "
+            "Pada bagian 'Usage', jelaskan cara menjalankan eksperimen, pengujian model, atau evaluasi."
+        ),
+        "opensource": (
+            "Tulis ini sebagai library atau tool open-source publik. "
+            "Fokus pada kemudahan integrasi, kolaborasi, dan dokumentasi API yang lengkap. "
+            "Pada bagian 'Features', buat daftar kapabilitas yang memudahkan developer lain. "
+            "Pada bagian 'Installation', gunakan standar package manager yang relevan. "
+            "Pada bagian 'Usage', WAJIB sertakan contoh kode (code snippets) yang jelas dan aplikatif."
+        )
     }
     selected_purpose = purpose_instructions.get(purpose_key, purpose_instructions["portfolio"])
 
@@ -246,7 +294,8 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
     final_sections = [s for s in SECTION_ORDER if s in requested_sections]
 
     system_prompt = (
-        f"Anda adalah seorang Technical Writer ahli. Tugas Anda adalah membuat file README.md yang akurat, informatif, dan profesional "
+        f"Anda adalah seorang Technical Writer ahli. Saat ini adalah Mei 2026. "
+        f"Tugas Anda adalah membuat file README.md yang sangat akurat, informatif, dan profesional "
         f"dalam {selected_language} untuk proyek GitHub yang diberikan.\n"
         f"Tujuan Proyek: {selected_purpose}\n"
         f"Target Audiens: {selected_audience}\n"
@@ -259,32 +308,54 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
         "1. README HANYA boleh mencakup bagian-bagian berikut dalam urutan yang sudah ditentukan. "
         "JANGAN tambahkan bagian lain di luar daftar ini:\n" +
         "\n".join([f"   {i+1}. {section}" for i, section in enumerate(final_sections)]) + "\n\n"
-        "2. Setiap seksi harus konsisten dengan 'Tingkat Detail per Seksi' yang telah ditentukan. "
-        "Jangan mempersingkat atau memperpanjang konten secara tidak proporsional.\n"
-        "3. Basekan seluruh konten teknis (instalasi, konfigurasi, dll.) pada data nyata dari file konfigurasi yang disediakan. "
-        "JANGAN mengarang perintah atau dependensi yang tidak ada.\n"
-        "4. Jika informasi untuk suatu seksi sangat minim atau tidak tersedia dari data repositori, "
-        "tuliskan seksi tersebut dengan konten placeholder yang jelas, misalnya: "
-        "'_(Tambahkan deskripsi di sini)_' atau '_(Belum tersedia)_'. "
-        "Jangan lewati atau hapus seksi yang diminta.\n"
-        "5. Output HARUS langsung dimulai dengan konten Markdown (diawali `#` atau badge). "
-        "JANGAN sertakan kata pembuka seperti 'Tentu!', 'Berikut adalah', atau 'Semoga membantu'.\n"
+        "2. Setiap seksi harus konsisten dengan 'Tingkat Detail per Seksi' yang telah ditentukan.\n"
+        "3. AKURASI DATA & TAHUN: \n"
+        f"   - Tahun pembuatan proyek (HANYA untuk referensi internal): {repo_data.get('created_at', 'Tidak diketahui')[:4] if repo_data.get('created_at') else 'Tidak diketahui'}\n"
+        f"   - Update terakhir proyek (HANYA untuk referensi internal): {repo_data.get('pushed_at', 'Tidak diketahui')[:4] if repo_data.get('pushed_at') else 'Tidak diketahui'}\n"
+        "   - JANGAN tulis kalimat tentang tahun pembuatan/pembaruan proyek secara eksplisit di README (misal: 'Proyek ini dibuat pada tahun X'). Informasi tahun hanya boleh muncul di bagian Copyright/License jika memang relevan.\n"
+        "   - Jika HARUS menyebut tahun, gunakan data tahun di atas. JANGAN mengarang tahun lain (misal 2023).\n"
+        "4. ANTI-HALUSINASI & GAYA BAHASA:\n"
+        "   - JANGAN gunakan kata-kata ragu (misal: 'mungkin', 'sepertinya', 'kemungkinan besar', 'likely'). Tulis dengan tegas.\n"
+        "   - Basekan seluruh konten teknis pada data nyata. JANGAN mengarang fitur atau dependensi yang tidak ada di file konfigurasi.\n"
+        "   - Jika informasi tidak ada, gunakan placeholder '_(Tambahkan deskripsi di sini)_'.\n"
+        "5. BADGES: Jika seksi 'Badges' diminta, Anda WAJIB menampilkannya sebagai gambar Markdown di bagian paling atas README. "
+        "6. Output HARUS langsung dimulai dengan konten Markdown. "
     )
 
     user_prompt = f"""
-    Buatkan saya file README.md untuk proyek GitHub ini:
+Identify the project purpose as: {purpose_key.upper()}
 
-    URL Repositori: {repo_data.get("html_url", "Tidak tersedia")}
-    Deskripsi Proyek: {repo_data.get("description", "Tidak ada deskripsi.")}
-    Bahasa Utama Proyek: {repo_data.get("language", "Tidak diketahui.")}
-    Struktur Direktori Lengkap:
-    {json.dumps(repo_data.get("full_directory_structure", {}), indent=2)}
-    Daftar File di Root: {', '.join(repo_data.get("files", []))}
+Main Instructions:
+1. Write a professional README.md for this GitHub repository: {repo_data.get("html_url", "Tidak tersedia")}
+2. Use the following project metadata to ensure accuracy:
+   - Name: {repo_data.get('name')}
+   - Description: {repo_data.get('description')}
+   - Primary Language: {repo_data.get('language')}
+   - Owner: {repo_data.get('owner', {}).get('login')}
+   - Contributors: {', '.join([c.get('login') for c in repo_data.get('contributors', [])[:5]])}
+3. IMPORTANT: For the 'Authors' or 'Maintainers' section, USE the real GitHub Owner and Contributors names listed above. DO NOT use placeholders.
+4. IMPORTANT: DO NOT create a separate 'Badges' section in the body. Badges should ONLY be placed at the very top of the file as images.
+5. Use {selected_language} for the entire content.
+6. Format with beautiful Markdown, use emojis, and clean dividers.
+7. Include these sections: {', '.join(final_sections)}.
+
+Struktur Direktori Lengkap:
+{json.dumps(repo_data.get("full_directory_structure", {}), indent=2)}
+Daftar File di Root: {', '.join(repo_data.get("files", []))}
     """
 
     # Add specific instructions for advanced sections
     if "Badges" in final_sections:
-        user_prompt += "\n- Badges: Buatkan badge status menggunakan Shields.io (build, license, version, stars) menggunakan URL repo ini."
+        repo_url_for_badge = repo_data.get('html_url', '')
+        owner_repo = '/'.join(repo_url_for_badge.rstrip('/').split('/')[-2:]) if repo_url_for_badge else 'owner/repo'
+        user_prompt += (
+            f"\n- Badges: WAJIB tampilkan badge sebagai gambar Markdown menggunakan sintaks ![label](url). "
+            f"Gunakan URL Shields.io yang sebenarnya. Contoh format yang HARUS digunakan:\n"
+            f"  ![GitHub stars](https://img.shields.io/github/stars/{owner_repo}?style=for-the-badge)\n"
+            f"  ![License](https://img.shields.io/github/license/{owner_repo}?style=for-the-badge)\n"
+            f"  ![GitHub last commit](https://img.shields.io/github/last-commit/{owner_repo}?style=for-the-badge)\n"
+            f"  JANGAN tulis deskripsi teks tentang badge. LANGSUNG tampilkan sintaks gambar Markdown di atas."
+        )
     if "Tech Stack" in final_sections:
         user_prompt += "\n- Tech Stack: List framework dan library utama yang ditemukan di file konfigurasi."
     if "Directory Structure" in final_sections:
@@ -303,14 +374,25 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
     if repo_data["key_files_content"].get("requirements.txt"):
         user_prompt += f"\n\nKonten requirements.txt:\n```text\n{repo_data['key_files_content']['requirements.txt']}\n```"
 
+    user_prompt += "\n\n--- Akhir Konteks ---"
+
+    # Clean up instructions to avoid empty lines or formatting issues
+    preset_extra = ""
+    if purpose_key == 'academic':
+        preset_extra = "- KHUSUS AKADEMIK: Gunakan terminologi teknis/ilmiah. Pastikan bagian 'Features' mencakup kapabilitas sistem dalam konteks riset. Bagian 'Installation' harus mendukung reproduksibilitas."
+    elif purpose_key == 'portfolio':
+        preset_extra = "- KHUSUS PORTFOLIO: Fokus pada kemudahan navigasi dan visualisasi hasil. Tonjolkan fitur yang paling menarik bagi pembaca umum/rekruter."
+    elif purpose_key == 'opensource':
+        preset_extra = "- KHUSUS OPEN SOURCE: Berikan instruksi yang jelas bagi kontributor baru. Pastikan contoh penggunaan (Usage) sangat detail dengan blok kode."
+
     user_prompt += f"""
-
---- Akhir Konteks ---
-
 Buat README.md yang informatif dan menarik dalam {selected_language} berdasarkan informasi di atas.
 WAJIB ikuti urutan seksi ini: {', '.join(final_sections)}.
 {f"Pastikan untuk menyertakan instruksi 'Instalasi' dan 'Penggunaan' yang jelas." if "Installation" in preferences.includeSections or "Usage" in preferences.includeSections else ""}
 Deskripsikan struktur proyek secara akurat berdasarkan 'Struktur Direktori Lengkap' yang diberikan.
+
+PANDUAN KHUSUS BERDASARKAN PRESET:
+{preset_extra}
 """
 
     if preferences.logoUrl:
@@ -328,9 +410,13 @@ JANGAN sertakan bagian yang tidak ada dalam daftar yang diminta di atas (kecuali
         {"role": "user", "content": user_prompt}
     ]
 
-async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
-    """Call Google AI Studio API directly (not through OpenRouter)"""
-    # Google Gemini does NOT support 'system' role.
+async def call_google_ai(prompt_messages: list, api_keys: list) -> str:
+    """Call Google AI Studio API directly with rotation and failover logic"""
+    if not api_keys:
+        raise HTTPException(status_code=500, detail="generator.errors.api.no_google_key")
+
+    global api_key_index
+    
     # Merge system prompt into the first user message.
     contents = []
     system_text = ""
@@ -352,53 +438,60 @@ async def call_google_ai(prompt_messages: list, google_api_key: str) -> str:
         }
     }
     
-    # Use gemini-2.5-flash as default model
+    # Using gemini-2.5-flash as requested
     model = "gemini-2.5-flash"
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={google_api_key}"
     
-    max_retries = 3
-    base_delay = 10  # 10s, 20s between retries to respect free tier RPM
+    # Number of keys available
+    num_keys = len(api_keys)
+    # We will try at most all available keys + some retries
+    max_attempts = num_keys * 2
     
     async with httpx.AsyncClient() as client:
-        for attempt in range(max_retries):
+        for attempt in range(max_attempts):
+            # Rotate key: use current index and increment for next request
+            current_key = api_keys[api_key_index % num_keys]
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={current_key}"
+            
             try:
                 response = await client.post(url, json=payload, timeout=60.0)
                 response.raise_for_status()
                 result = response.json()
-                # Extract text from Google's response format
-                return result["candidates"][0]["content"]["parts"][0]["text"]
-            except httpx.HTTPStatusError as e:
-                # Handle Rate Limit (429) and Service Unavailable (503) with Retry
-                if e.response.status_code in [429, 503]:
-                    # Log the actual response body to understand the root cause
-                    try:
-                        err_body = e.response.json()
-                        print(f"[DEBUG] Google {e.response.status_code} response body: {err_body}")
-                    except Exception:
-                        print(f"[DEBUG] Google {e.response.status_code} raw body: {e.response.text[:500]}")
-                    
-                    if attempt < max_retries - 1:
-                        wait_time = base_delay * (2 ** attempt)
-                        reason = "rate limit (429)" if e.response.status_code == 429 else "service busy (503)"
-                        print(f"Google AI {reason} hit. Retrying in {wait_time}s... (Attempt {attempt + 1})")
-                        await asyncio.sleep(wait_time)
-                        continue
-                    else:
-                        error_key = "generator.errors.api.quota" if e.response.status_code == 429 else "generator.errors.api.busy"
-                        raise HTTPException(status_code=e.response.status_code, detail=error_key)
                 
-                # Default safety: parse JSON if possible, otherwise return generic unknown
-                try:
-                    err_json = e.response.json()
-                    err_msg = err_json.get("error", {}).get("message", "generator.errors.api.unknown")
-                    raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
-                except:
-                    raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
+                # Success! Move index for next request distribution
+                api_key_index = (api_key_index + 1) % num_keys
+                return result["candidates"][0]["content"]["parts"][0]["text"]
+                
+            except httpx.HTTPStatusError as e:
+                # Handle Rate Limit (429), Service Unavailable (503), and Invalid API Key (400 with specific reason)
+                if e.response.status_code in [429, 503]:
+                    reason = "rate limit (429)" if e.response.status_code == 429 else "service busy (503)"
+                    print(f"[API] Key {api_key_index % num_keys} hit {reason}. Attempt {attempt + 1}/{max_attempts}")
+                    api_key_index = (api_key_index + 1) % num_keys
+                    if attempt >= num_keys - 1:
+                        wait_time = 5 * (2 ** (attempt // num_keys))
+                        await asyncio.sleep(wait_time)
+                    continue
+                
+                if e.response.status_code == 400:
+                    error_data = e.response.json()
+                    print(f"[DEBUG] Google 400 Error: {error_data}", flush=True)
+                    error_reason = error_data.get("error", {}).get("status", "")
+                    
+                    if "INVALID_ARGUMENT" in error_reason or "API_KEY_INVALID" in str(error_data):
+                        print(f"[API] Key {api_key_index % num_keys} is REJECTED by Google. Rotating...", flush=True)
+                        api_key_index = (api_key_index + 1) % num_keys
+                        continue
+                
+                raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
 
             except Exception as e:
-                # Log the actual internal error for debugging but show user-friendly msg
                 print(f"Internal Error in call_google_ai: {str(e)}")
+                if attempt < max_attempts - 1:
+                    api_key_index = (api_key_index + 1) % num_keys
+                    continue
                 raise HTTPException(status_code=500, detail="generator.errors.api.unknown")
+
+    raise HTTPException(status_code=503, detail="generator.errors.api.busy")
 
 
 @app.get("/")
@@ -414,15 +507,13 @@ async def generate_readme_api(github_url_data: GitHubUrl):
     
     if not GITHUB_URL_REGEX.match(github_url):
         raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url")
-    if not GOOGLE_API_KEY:
-        raise HTTPException(status_code=500, detail="generator.errors.api.no_google_key")
-
     try:
         github_data = await get_github_directory_contents(github_url, GITHUB_PAT)
         prompt_messages = build_llm_prompt(github_data, github_url_data.preferences)
-        readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEY)
+        readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEYS)
         return {"readme": readme_content}
     except HTTPException as e:
         raise e
     except Exception as e:
+        print(f"Unhandled error: {e}")
         raise HTTPException(status_code=500, detail="generator.errors.api.internal_error")

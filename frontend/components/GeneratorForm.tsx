@@ -147,7 +147,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
         newPrefs.tone = 'professional';
         newPrefs.targetAudience = 'developer';
         newPrefs.verbosity = 'comprehensive';
-        newPrefs.includeSections = [...ESSENTIAL_SECTIONS, 'License', 'Tech Stack', 'Authors'];
+        newPrefs.includeSections = [...ESSENTIAL_SECTIONS, 'Badges', 'License', 'Tech Stack', 'Authors'];
       }
       
       return newPrefs;
