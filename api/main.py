@@ -255,12 +255,10 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
     # Table of Contents
     toc_instr = (
         "Buatkan daftar isi (Table of Contents) di bagian atas README. "
-        "ATURAN JANGKAR (ANCHOR): Link jangkar harus mengikuti aturan slug GitHub: "
-        "1. Gunakan huruf kecil semua. "
-        "2. Ganti spasi dengan tanda hubung (-). "
-        "3. Hapus semua karakter non-alfanumerik (seperti tanda kurung, titik, dll). "
-        "4. PENTING: Jika judul mengandung emoji (misal: ## 🚀 Fitur), GitHub akan menyisipkan tanda hubung di depan ID-nya. "
-        "Pastikan link daftar isi Anda sinkron dengan ID tersebut (misal: [#fitur] atau [#-fitur] tergantung posisi emoji)."
+        "ATURAN JANGKAR (ANCHOR) GITHUB: \n"
+        "PENTING: Jika judul bagian dimulai dengan emoji (misal '## 💻 Tech Stack'), "
+        "maka link daftar isinya WAJIB diawali dengan tanda hubung setelah karakter hash (misal: '[Tech Stack](#-tech-stack)'). "
+        "Ini wajib agar link bisa diklik di sistem. Jika judul tidak diawali emoji, gunakan format biasa (misal '#features')."
     ) if preferences.includeTOC else ""
 
     # Map Project Purpose
@@ -327,8 +325,10 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
         "   - JANGAN gunakan kata-kata ragu (misal: 'mungkin', 'sepertinya', 'kemungkinan besar', 'likely'). Tulis dengan tegas.\n"
         "   - Basekan seluruh konten teknis pada data nyata. JANGAN mengarang fitur atau dependensi yang tidak ada di file konfigurasi.\n"
         "   - Jika informasi tidak ada, gunakan placeholder '_(Tambahkan deskripsi di sini)_'.\n"
-        "5. BADGES: Jika seksi 'Badges' diminta, Anda WAJIB menampilkannya sebagai gambar Markdown di bagian paling atas README. "
-        "6. Output HARUS langsung dimulai dengan konten Markdown. "
+        "5. BADGES: Jika seksi 'Badges' diminta, Anda WAJIB menampilkannya sebagai gambar Markdown di bagian paling atas README. \n"
+        "6. TECH STACK BADGES: Jika menggunakan badge di Tech Stack, Anda WAJIB menggunakan format gambar Markdown: `![alt](https://img.shields.io/badge/...)`. DILARANG menggunakan backticks (``) atau hanya teks URL.\n"
+        "7. ANTI-HALLUCINATION: DILARANG KERAS 'menebak' (inferred) atau mengarang konten. Dilarang menulis '(Inferred from...)' atau sejenisnya. Hanya tulis apa yang benar-benar ada di data yang diberikan. Jika tidak yakin, gunakan placeholder '_(Deskripsi belum tersedia)_'.\n"
+        "8. Output HARUS langsung dimulai dengan konten Markdown. "
     )
 
     user_prompt = f"""
@@ -355,8 +355,13 @@ Daftar File di Root: {', '.join(repo_data.get("files", []))}
 
     # Add specific instructions for advanced sections
     if "Badges" in final_sections:
-        repo_url_for_badge = repo_data.get('html_url', '')
-        owner_repo = '/'.join(repo_url_for_badge.rstrip('/').split('/')[-2:]) if repo_url_for_badge else 'owner/repo'
+        repo_url_for_badge = repo_data.get('html_url', '').rstrip('/')
+        if repo_url_for_badge.endswith('.git'):
+            repo_url_for_badge = repo_url_for_badge[:-4]
+        
+        url_parts = repo_url_for_badge.split('/')
+        owner_repo = f"{url_parts[-2]}/{url_parts[-1]}" if len(url_parts) >= 2 else 'owner/repo'
+        
         user_prompt += (
             f"\n- Badges: WAJIB tampilkan badge sebagai gambar Markdown menggunakan sintaks ![label](url). "
             f"Gunakan URL Shields.io yang sebenarnya. Contoh format yang HARUS digunakan:\n"
