@@ -326,7 +326,7 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
         "   - Basekan seluruh konten teknis pada data nyata. JANGAN mengarang fitur atau dependensi yang tidak ada di file konfigurasi.\n"
         "   - Jika informasi tidak ada, gunakan placeholder '_(Tambahkan deskripsi di sini)_'.\n"
         "5. BADGES: Jika seksi 'Badges' diminta, Anda WAJIB menampilkannya sebagai gambar Markdown di bagian paling atas README. \n"
-        "6. TECH STACK BADGES: Jika menggunakan badge di Tech Stack, Anda WAJIB menggunakan format gambar Markdown: `![alt](https://img.shields.io/badge/...)`. DILARANG menggunakan backticks (``) atau hanya teks URL.\n"
+        "6. TECH STACK BADGES: Jika menggunakan badge di Tech Stack, Anda WAJIB menggunakan format gambar Markdown: ![alt](https://img.shields.io/badge/...). DILARANG menggunakan backticks (``) atau hanya teks URL.\n"
         "7. ANTI-HALLUCINATION: DILARANG KERAS 'menebak' (inferred) atau mengarang konten. Dilarang menulis '(Inferred from...)' atau sejenisnya. Hanya tulis apa yang benar-benar ada di data yang diberikan. Jika tidak yakin, gunakan placeholder '_(Deskripsi belum tersedia)_'.\n"
         "8. Output HARUS langsung dimulai dengan konten Markdown. "
     )
