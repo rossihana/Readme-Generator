@@ -13,6 +13,12 @@ export default defineConfig(({ mode }) => {
             target: 'http://localhost:8000',
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api/, ''),
+            // Diperlukan agar SSE stream tidak di-buffer oleh Vite proxy
+            configure: (proxy) => {
+              proxy.on('proxyRes', (proxyRes) => {
+                proxyRes.headers['cache-control'] = 'no-cache';
+              });
+            },
           },
         },
       },

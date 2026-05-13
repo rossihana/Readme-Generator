@@ -61,7 +61,8 @@ while True:
 # Debug: Show masked keys to verify loading
 print(f"[DEBUG] System found {len(GOOGLE_API_KEYS)} keys.", flush=True)
 for idx, k in enumerate(GOOGLE_API_KEYS):
-    print(f"[DEBUG] Key-{idx+1} (Len:{len(k)}): {k[:14]}...{k[-10:]}", flush=True)
+    # Masking more strictly (only show first 6 and last 4)
+    print(f"[DEBUG] Key-{idx+1} (Len:{len(k)}): {k[:6]}...{k[-4:]}", flush=True)
 
 # Global counter for round-robin rotation
 api_key_index = 0
@@ -452,7 +453,7 @@ async def call_google_ai(prompt_messages: list, api_keys: list) -> str:
         "contents": contents,
         "generationConfig": {
             "temperature": 0.7,
-            "maxOutputTokens": 8192
+            "maxOutputTokens": 20480
         }
     }
     
@@ -471,7 +472,7 @@ async def call_google_ai(prompt_messages: list, api_keys: list) -> str:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={current_key}"
             
             try:
-                response = await client.post(url, json=payload, timeout=60.0)
+                response = await client.post(url, json=payload, timeout=120.0)
                 response.raise_for_status()
                 result = response.json()
                 
@@ -517,21 +518,135 @@ async def read_root():
     return {"message": "Welcome to the AI README Generator Backend!"}
 
 
+async def _readme_event_stream(github_url: str, preferences: OutputPreferences):
+    """Generator async yang menghasilkan event SSE di setiap tahap proses."""
+
+    def make_event(event_name: str, data: dict) -> str:
+        return f"event: {event_name}\ndata: {json.dumps(data)}\n\n"
+
+    try:
+        url_parts = github_url.split('/')
+        owner = url_parts[3]
+        repo = url_parts[4].replace(".git", "")
+
+        GITHUB_HEADERS_LOCAL = {
+            "Authorization": f"token {GITHUB_PAT}",
+            "Accept": "application/vnd.github.v3+json"
+        } if GITHUB_PAT else {"Accept": "application/vnd.github.v3+json"}
+
+        # --- TAHAP 1: Koneksi ---
+        yield make_event("status", {"key": "generator.loading.connect"})
+        await asyncio.sleep(0)  # flush event ke client
+
+        repo_data = {}
+        async with httpx.AsyncClient() as client:
+
+            # --- TAHAP 2a: Ambil metadata repo ---
+            yield make_event("status", {"key": "generator.loading.fetch_meta", "repo": repo})
+            await asyncio.sleep(0)
+            repo_info_url = f"https://api.github.com/repos/{owner}/{repo}"
+            resp = await client.get(repo_info_url, headers=GITHUB_HEADERS_LOCAL)
+            resp.raise_for_status()
+            repo_info = resp.json()
+            repo_data["name"] = repo_info.get("name")
+            repo_data["description"] = repo_info.get("description", "")
+            repo_data["language"] = repo_info.get("language", "")
+            repo_data["html_url"] = repo_info.get("html_url", github_url)
+            repo_data["owner"] = repo_info.get("owner", {})
+            repo_data["created_at"] = repo_info.get("created_at")
+            repo_data["pushed_at"] = repo_info.get("pushed_at")
+
+            # --- TAHAP 2b: Ambil kontributor ---
+            yield make_event("status", {"key": "generator.loading.fetch_contributors"})
+            await asyncio.sleep(0)
+            contrib_resp = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page=5",
+                headers=GITHUB_HEADERS_LOCAL
+            )
+            repo_data["contributors"] = contrib_resp.json() if contrib_resp.status_code == 200 else []
+
+            # --- TAHAP 2c: Scan struktur direktori ---
+            yield make_event("status", {"key": "generator.loading.fetch_tree"})
+            await asyncio.sleep(0)
+            async def get_dir_async(dir_path: str = "") -> dict:
+                r = await client.get(
+                    f"https://api.github.com/repos/{owner}/{repo}/contents/{dir_path}",
+                    headers=GITHUB_HEADERS_LOCAL
+                )
+                r.raise_for_status()
+                structure = {}
+                for item in r.json():
+                    if item["type"] == "dir":
+                        structure[item["name"]] = await get_dir_async(f"{dir_path}/{item['name']}")
+                    else:
+                        structure[item["name"]] = "file"
+                return structure
+            repo_data["full_directory_structure"] = await get_dir_async()
+
+            # --- TAHAP 2d: Baca file kunci ---
+            yield make_event("status", {"key": "generator.loading.fetch_files"})
+            await asyncio.sleep(0)
+            root_resp = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/contents/",
+                headers=GITHUB_HEADERS_LOCAL
+            )
+            root_resp.raise_for_status()
+            root_contents = root_resp.json()
+            repo_data["files"] = [i["name"] for i in root_contents if i["type"] == "file"]
+
+            key_files = {"package.json": "", "requirements.txt": ""}
+            for item in root_contents:
+                if item["type"] == "file" and item["name"] in key_files:
+                    fc = await client.get(item["url"], headers=GITHUB_HEADERS_LOCAL)
+                    fc.raise_for_status()
+                    fd = fc.json()
+                    key_files[item["name"]] = (
+                        decode_base64_content(fd["content"])
+                        if fd.get("encoding") == "base64"
+                        else fd.get("content", "")
+                    )
+            repo_data["key_files_content"] = key_files
+
+        # --- TAHAP 3: Analisis & Build Prompt ---
+        yield make_event("status", {"key": "generator.loading.analyze"})
+        await asyncio.sleep(0)
+        prompt_messages = build_llm_prompt(repo_data, preferences)
+
+        # --- TAHAP 4: Panggil AI ---
+        yield make_event("status", {"key": "generator.loading.generate"})
+        await asyncio.sleep(0)
+        readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEYS)
+
+        # --- SELESAI: Kirim hasil README ---
+        yield make_event("result", {"readme": readme_content})
+        yield make_event("done", {})
+
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            yield make_event("error", {"message": "generator.errors.api.repo_not_found"})
+        else:
+            yield make_event("error", {"message": "generator.errors.api.fetch_failed"})
+    except HTTPException as e:
+        yield make_event("error", {"message": e.detail})
+    except Exception as e:
+        print(f"Unhandled stream error: {e}")
+        yield make_event("error", {"message": "generator.errors.api.internal_error"})
+
 
 @app.post("/generate-readme")
 async def generate_readme_api(github_url_data: GitHubUrl):
-    """Endpoint untuk menghasilkan README.md dari URL GitHub."""
+    """Endpoint untuk menghasilkan README.md dari URL GitHub via SSE streaming."""
     github_url = github_url_data.githubUrl.strip()
-    
+
     if not GITHUB_URL_REGEX.match(github_url):
         raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url")
-    try:
-        github_data = await get_github_directory_contents(github_url, GITHUB_PAT)
-        prompt_messages = build_llm_prompt(github_data, github_url_data.preferences)
-        readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEYS)
-        return {"readme": readme_content}
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        print(f"Unhandled error: {e}")
-        raise HTTPException(status_code=500, detail="generator.errors.api.internal_error")
+
+    return StreamingResponse(
+        _readme_event_stream(github_url, github_url_data.preferences),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )

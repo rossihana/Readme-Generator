@@ -32,7 +32,10 @@
     },
     "loading": {
       "connect": "Connecting to GitHub...",
-      "fetch": "Fetching repository data...",
+      "fetch_meta": "Reading repository metadata...",
+      "fetch_contributors": "Fetching contributors list...",
+      "fetch_tree": "Scanning directory structure...",
+      "fetch_files": "Reading key configuration files...",
       "analyze": "Analyzing source code...",
       "generate": "Generating README with Gemini AI..."
     },

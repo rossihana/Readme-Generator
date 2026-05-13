@@ -24,20 +24,7 @@ const App: React.FC = () => {
     setStartTime(startTimeNow);
     setElapsedTime(0);
     setFinalElapsedTime(null);
-
-    const statuses = [
-      t('generator.loading.connect'),
-      t('generator.loading.fetch'),
-      t('generator.loading.analyze'),
-      t('generator.loading.generate')
-    ];
-    
-    let statusIndex = 0;
-    setStatusMessage(statuses[statusIndex]);
-    const intervalId = setInterval(() => {
-      statusIndex = Math.min(statusIndex + 1, statuses.length - 1);
-      setStatusMessage(statuses[statusIndex]);
-    }, 3000);
+    setStatusMessage(t('generator.loading.connect'));
 
     const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -48,18 +35,56 @@ const App: React.FC = () => {
         body: JSON.stringify({ githubUrl, preferences }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!response.ok || !response.body) {
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || 'generator.errors.api.generate_failed');
       }
 
-      const data = await response.json();
-      setReadmeContent(data.readme);
+      // Baca stream SSE dari backend secara real-time
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Pisahkan event-event berdasarkan double newline (\n\n atau \r\n\r\n)
+        const parts = buffer.split(/\r?\n\r?\n/);
+        buffer = parts.pop() || ''; // Simpan bagian terakhir yang mungkin belum lengkap
+
+        for (const block of parts) {
+          if (!block.trim()) continue;
+
+          let eventName = '';
+          let eventData = '';
+
+          for (const line of block.split(/\r?\n/)) {
+            if (line.startsWith('event: ')) eventName = line.slice(7).trim();
+            else if (line.startsWith('data: ')) eventData = line.slice(6).trim();
+          }
+
+          if (!eventName || !eventData) continue;
+
+          const parsed = JSON.parse(eventData);
+
+          if (eventName === 'status') {
+            // Update pesan loading secara real-time sesuai tahap backend
+            setStatusMessage(t(parsed.key));
+          } else if (eventName === 'result') {
+            setReadmeContent(parsed.readme);
+          } else if (eventName === 'error') {
+            throw new Error(parsed.message || 'generator.errors.api.unknown');
+          }
+          // eventName === 'done' → stream selesai, loop akan berhenti sendiri
+        }
+      }
 
     } catch (err: any) {
       setError(err.message || 'generator.errors.api.unknown');
     } finally {
-      clearInterval(intervalId);
       setIsLoading(false);
       setStatusMessage('');
       setFinalElapsedTime(Math.floor((Date.now() - startTimeNow) / 1000));

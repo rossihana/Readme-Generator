@@ -32,7 +32,10 @@
     },
     "loading": {
       "connect": "Menghubungkan ke GitHub...",
-      "fetch": "Mengambil data repositori...",
+      "fetch_meta": "Membaca metadata repositori...",
+      "fetch_contributors": "Mengambil daftar kontributor...",
+      "fetch_tree": "Memindai struktur direktori...",
+      "fetch_files": "Membaca file konfigurasi kunci...",
       "analyze": "Menganalisis kode sumber...",
       "generate": "Menghasilkan README dengan Gemini AI..."
     },
