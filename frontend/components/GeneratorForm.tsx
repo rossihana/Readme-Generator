@@ -547,12 +547,14 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
               </p>
               <div className="flex gap-4">
                 <button 
+                  type="button"
                   onClick={() => setPendingPreset(null)}
                   className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 text-sm font-bold hover:bg-gray-700 transition-colors"
                 >
                   {t('generator.warning.cancel')}
                 </button>
                 <button 
+                  type="button"
                   onClick={() => applyPreset(pendingPreset || '')}
                   className="flex-1 py-3 rounded-xl bg-purple-600 text-white text-sm font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/30 transition-all"
                 >
