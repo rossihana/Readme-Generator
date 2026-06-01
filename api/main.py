@@ -302,7 +302,7 @@ def build_llm_prompt(repo_data: dict, preferences: OutputPreferences) -> list:
     final_sections = [s for s in SECTION_ORDER if s in requested_sections]
 
     system_prompt = (
-        f"Anda adalah seorang Technical Writer ahli. Saat ini adalah Mei 2026. "
+        f"Anda adalah seorang Technical Writer ahli."
         f"Tugas Anda adalah membuat file README.md yang sangat akurat, informatif, dan profesional "
         f"dalam {selected_language} untuk proyek GitHub yang diberikan.\n"
         f"Tujuan Proyek: {selected_purpose}\n"
