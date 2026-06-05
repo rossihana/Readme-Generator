@@ -65,6 +65,8 @@ const App: React.FC = () => {
     return t(key);
   };
 
+  const LOCAL_PROVIDERS = ['ollama', 'nine_router'];
+
   const handleGenerateReadme = async (githubUrl: string, preferences: any): Promise<void> => {
     setIsLoading(true);
     setReadmeContent('');
@@ -77,8 +79,78 @@ const App: React.FC = () => {
     setStatusMessage(t('generator.loading.connect'));
 
     const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
+    const isLocal = LOCAL_PROVIDERS.includes(aiConfig.provider);
 
     try {
+      // ── LOCAL PROVIDER FLOW (Ollama / 9Router) ──────────────────────────────
+      // Browser calls localhost directly — bypasses cloud backend network limit.
+      if (isLocal) {
+        // Step 1: ask backend to scrape GitHub & build prompt
+        setStatusMessage(t('generator.loading.fetch_meta'));
+        const prepResp = await fetch(`${API_BASE}/prepare-prompt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ githubUrl, preferences, aiConfig }),
+        });
+        if (!prepResp.ok) {
+          const errData = await prepResp.json().catch(() => ({}));
+          throw new Error(errData.detail || 'generator.errors.api.fetch_failed');
+        }
+        const { messages } = await prepResp.json();
+
+        // Step 2: call local AI directly from browser
+        setStatusMessage(getGenerateStatusMessage('generator.loading.generate'));
+
+        let readmeContent = '';
+
+        if (aiConfig.provider === 'ollama') {
+          const base = (aiConfig.ollamaUrl || 'http://localhost:11434').replace(/\/$/, '');
+          const systemText = messages.find((m: any) => m.role === 'system')?.content || '';
+          const userText = messages.find((m: any) => m.role === 'user')?.content || '';
+          const combined = systemText ? `${systemText}\n\n${userText}` : userText;
+
+          const resp = await fetch(`${base}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: aiConfig.model, prompt: combined, stream: false }),
+          });
+          if (!resp.ok) {
+            const txt = await resp.text();
+            throw new Error(`Ollama error ${resp.status}: ${txt.slice(0, 200)}`);
+          }
+          const data = await resp.json();
+          readmeContent = data.response || '';
+
+        } else {
+          // nine_router — OpenAI-compatible
+          const base = (aiConfig.nineRouterUrl || 'http://localhost:20128').replace(/\/$/, '');
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (aiConfig.apiKey) headers['Authorization'] = `Bearer ${aiConfig.apiKey}`;
+
+          const resp = await fetch(`${base}/v1/chat/completions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              model: aiConfig.model,
+              messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+              temperature: 0.7,
+              stream: false,
+            }),
+          });
+          if (!resp.ok) {
+            const txt = await resp.text();
+            throw new Error(`9Router error ${resp.status}: ${txt.slice(0, 200)}`);
+          }
+          const data = await resp.json();
+          readmeContent = data.choices?.[0]?.message?.content || '';
+        }
+
+        if (!readmeContent) throw new Error('generator.errors.api.ai_call_failed');
+        setReadmeContent(readmeContent);
+        return;
+      }
+
+      // ── CLOUD PROVIDER FLOW (default, Gemini, OpenAI, Groq, etc.) ───────────
       const response = await fetch(`${API_BASE}/generate-readme`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
