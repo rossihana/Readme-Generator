@@ -81,10 +81,26 @@ const App: React.FC = () => {
     const API_BASE = (import.meta as any).env?.VITE_API_URL || '/api';
     const isLocal = LOCAL_PROVIDERS.includes(aiConfig.provider);
 
+    // Detect if running on HTTPS (e.g. Vercel) — browsers block HTTP localhost from HTTPS pages
+    const isHttps = window.location.protocol === 'https:';
+    const localUrl = aiConfig.provider === 'ollama'
+      ? (aiConfig.ollamaUrl || 'http://localhost:11434')
+      : (aiConfig.nineRouterUrl || 'http://localhost:20128');
+    const targetIsHttp = localUrl.startsWith('http://');
+
     try {
       // ── LOCAL PROVIDER FLOW (Ollama / 9Router) ──────────────────────────────
-      // Browser calls localhost directly — bypasses cloud backend network limit.
       if (isLocal) {
+
+        // Guard: HTTPS page cannot call HTTP localhost (Mixed Content blocked by browser)
+        if (isHttps && targetIsHttp) {
+          const providerName = aiConfig.provider === 'ollama' ? 'Ollama' : '9Router';
+          const port = aiConfig.provider === 'ollama' ? '11434' : '20128';
+          throw new Error(
+            `generator.errors.local.mixed_content::${providerName}::${port}`
+          );
+        }
+
         // Step 1: ask backend to scrape GitHub & build prompt
         setStatusMessage(t('generator.loading.fetch_meta'));
         const prepResp = await fetch(`${API_BASE}/prepare-prompt`, {
@@ -104,7 +120,7 @@ const App: React.FC = () => {
         let readmeContent = '';
 
         if (aiConfig.provider === 'ollama') {
-          const base = (aiConfig.ollamaUrl || 'http://localhost:11434').replace(/\/$/, '');
+          const base = localUrl.replace(/\/$/, '');
           const systemText = messages.find((m: any) => m.role === 'system')?.content || '';
           const userText = messages.find((m: any) => m.role === 'user')?.content || '';
           const combined = systemText ? `${systemText}\n\n${userText}` : userText;
@@ -123,7 +139,7 @@ const App: React.FC = () => {
 
         } else {
           // nine_router — OpenAI-compatible
-          const base = (aiConfig.nineRouterUrl || 'http://localhost:20128').replace(/\/$/, '');
+          const base = localUrl.replace(/\/$/, '');
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (aiConfig.apiKey) headers['Authorization'] = `Bearer ${aiConfig.apiKey}`;
 
@@ -333,8 +349,42 @@ const App: React.FC = () => {
         </header>
 
         <main className={`rounded-xl shadow-2xl shadow-purple-500/10 p-6 sm:p-8 border transition-colors duration-300 ${cardBg}`}>
+          {/* Mixed-content / HTTPS + localhost error */}
+          {error?.startsWith('generator.errors.local.mixed_content') && (() => {
+            const [, providerName, port] = error.split('::');
+            return (
+              <div className={`border rounded-xl mb-6 overflow-hidden ${isDark ? 'bg-amber-950/40 border-amber-600/40' : 'bg-amber-50 border-amber-300'}`}>
+                <div className={`px-4 py-3 flex items-start gap-3 ${isDark ? 'bg-amber-900/30' : 'bg-amber-100'}`}>
+                  <span className="text-xl mt-0.5">🔒</span>
+                  <div>
+                    <p className={`text-sm font-bold ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>
+                      Browser memblokir koneksi ke {providerName} (Mixed Content)
+                    </p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-amber-400/80' : 'text-amber-700'}`}>
+                      Halaman HTTPS (Vercel) tidak dapat mengakses <code className="font-mono bg-black/20 px-1 rounded">http://localhost:{port}</code> karena kebijakan keamanan browser.
+                    </p>
+                  </div>
+                </div>
+                <div className={`px-4 py-3 text-xs space-y-2 ${isDark ? 'text-amber-300/80' : 'text-amber-800'}`}>
+                  <p className="font-semibold">✅ Pilih salah satu solusi:</p>
+                  <div className={`rounded-lg p-3 space-y-1 ${isDark ? 'bg-amber-950/50' : 'bg-white/60'}`}>
+                    <p className="font-bold">Opsi 1 — Jalankan aplikasi secara lokal (Paling mudah)</p>
+                    <p className={isDark ? 'text-amber-400/70' : 'text-amber-700'}>Download/clone repo ini dan jalankan <code className="font-mono bg-black/10 px-1 rounded">npm start</code> di laptop Anda. Localhost bekerja sempurna saat aplikasi dijalankan lokal.</p>
+                  </div>
+                  <div className={`rounded-lg p-3 space-y-1 ${isDark ? 'bg-amber-950/50' : 'bg-white/60'}`}>
+                    <p className="font-bold">Opsi 2 — Gunakan Ngrok (Akses dari Vercel)</p>
+                    <code className={`block font-mono text-[11px] px-2 py-1 rounded ${isDark ? 'bg-black/40' : 'bg-amber-100'}`}>
+                      ngrok http {port}
+                    </code>
+                    <p className={isDark ? 'text-amber-400/70' : 'text-amber-700'}>Lalu ganti URL {providerName} di pengaturan AI dengan URL <strong>https://</strong> dari Ngrok.</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* GitHub / generic error */}
-          {error && !aiError && (
+          {error && !aiError && !error.startsWith('generator.errors.local.mixed_content') && (
             <div className={`border px-4 py-3 rounded-lg mb-6 flex items-center gap-3 ${errorBg}`}>
               <span className="text-lg">⚠️</span>
               <span>{t(error)}</span>
