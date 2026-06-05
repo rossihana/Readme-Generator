@@ -154,7 +154,13 @@
     "nine_router_hint": "Pastikan 9Router berjalan. Endpoint default: http://localhost:20128",
     "fetch_models_btn": "Ambil Model",
     "fetching_models": "Mengambil daftar model...",
-    "active_badge": "Aktif"
+    "active_badge": "Aktif",
+    "local_ai_guide_title": "Panduan AI Lokal (Ollama / 9Router)",
+    "local_ai_guide_not_localhost": "Peringatan: Anda mengakses aplikasi dari web. AI lokal (Ollama/9Router) hanya bisa diakses jika Anda menjalankan aplikasi ini secara lokal di komputer Anda karena aturan keamanan browser (CORS & Mixed Content).",
+    "local_ai_guide_run_local": "Cara menjalankan aplikasi secara lokal:",
+    "local_ai_guide_step_1": "1. Clone repositori ini ke komputer Anda.",
+    "local_ai_guide_step_2": "2. Jalankan perintah di bawah ini pada terminal di root folder proyek:",
+    "local_ai_guide_step_3": "3. Buka browser di alamat http://localhost:3000"
   },
   "theme": {
     "toggle_dark": "Mode Gelap",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, EyeOff, Wifi, WifiOff, Save, RefreshCw, ChevronDown, Zap } from 'lucide-react';
+import { X, Eye, EyeOff, Wifi, WifiOff, Save, RefreshCw, ChevronDown, Zap, AlertTriangle, Terminal } from 'lucide-react';
 
 export interface AIConfig {
   provider: string;
@@ -406,6 +406,56 @@ export const AiConfigModal: React.FC<AiConfigModalProps> = ({
                     <p className="text-[11px] text-amber-500/80 flex items-center gap-1.5">
                       <span>💡</span> {t('ai_config.nine_router_hint')}
                     </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+
+              {/* Local AI Guide Alert Card */}
+              <AnimatePresence>
+                {(config.provider === 'ollama' || config.provider === 'nine_router') && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-3"
+                  >
+                    <div className={`p-4 rounded-xl border flex flex-col gap-2.5 ${
+                      isDark 
+                        ? 'bg-amber-950/20 border-amber-800/40 text-amber-300' 
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider">
+                            {t('ai_config.local_ai_guide_title')}
+                          </h4>
+                          <p className="text-[11px] leading-relaxed mt-1 opacity-90">
+                            {t('ai_config.local_ai_guide_not_localhost')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className={`p-3 rounded-lg font-mono text-[10px] space-y-1 ${
+                        isDark ? 'bg-black/40 text-gray-300' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        <div className={`font-bold border-b pb-1 mb-1.5 flex items-center gap-1.5 ${
+                          isDark ? 'border-gray-700/30' : 'border-gray-300'
+                        }`}>
+                          <Terminal className="w-3.5 h-3.5" />
+                          {t('ai_config.local_ai_guide_run_local')}
+                        </div>
+                        <div>{t('ai_config.local_ai_guide_step_1')}</div>
+                        <div className="mt-1">{t('ai_config.local_ai_guide_step_2')}</div>
+                        <div className={`p-1.5 rounded my-1 select-all font-bold ${
+                          isDark ? 'bg-gray-900 text-purple-300' : 'bg-gray-200 text-purple-700'
+                        }`}>
+                          npm start
+                        </div>
+                        <div>{t('ai_config.local_ai_guide_step_3')}</div>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -154,7 +154,13 @@
     "nine_router_hint": "Make sure 9Router is running. Default endpoint: http://localhost:20128",
     "fetch_models_btn": "Fetch Models",
     "fetching_models": "Fetching model list...",
-    "active_badge": "Active"
+    "active_badge": "Active",
+    "local_ai_guide_title": "Local AI Guide (Ollama / 9Router)",
+    "local_ai_guide_not_localhost": "Warning: You are accessing the application via web deployment. Local AI (Ollama/9Router) can only be accessed if you run this application locally on your computer due to browser security restrictions (CORS & Mixed Content).",
+    "local_ai_guide_run_local": "How to run the application locally:",
+    "local_ai_guide_step_1": "1. Clone this repository to your computer.",
+    "local_ai_guide_step_2": "2. Run the command below in your terminal at the project root folder:",
+    "local_ai_guide_step_3": "3. Open your browser at http://localhost:3000"
   },
   "theme": {
     "toggle_dark": "Dark Mode",
