@@ -12,11 +12,12 @@ interface ReadmeDisplayProps {
   markdown: string;
   onReset: () => void;
   finalElapsedTime: number | null;
+  isDark?: boolean;
 }
 
 type CopyStatus = 'idle' | 'success' | 'error';
 
-export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset, finalElapsedTime }) => {
+export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset, finalElapsedTime, isDark = true }) => {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const [viewMode, setViewMode] = useState<'preview' | 'raw' | 'edit'>('preview');
@@ -74,18 +75,18 @@ export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset,
     ),
   };
 
-  const previewStyles = {
+  const previewStyles = isDark ? ({
     '--color-prettylights-syntax-comment': '#8b949e',
     '--color-prettylights-syntax-constant': '#79c0ff',
     '--color-fg-default': '#c9d1d9',
     '--color-fg-muted': '#8b949e'
-  } as React.CSSProperties;
+  } as React.CSSProperties) : ({} as React.CSSProperties);
 
   const PreviewContent = () => (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-4 sm:p-8 markdown-body bg-transparent !text-gray-100" 
+      className={`p-4 sm:p-8 markdown-body bg-transparent ${isDark ? '!text-gray-100' : '!text-gray-900'}`}
       style={previewStyles}
     >
       <ReactMarkdown 
@@ -198,21 +199,29 @@ export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset,
 
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h2 className="text-2xl font-bold text-gray-100 flex items-center gap-2">
+          <h2 className={`text-2xl font-bold flex items-center gap-2 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
             <FileCode className="w-6 h-6 text-purple-400" />
             {t('readme.header')} {finalElapsedTime !== null && `(${finalElapsedTime}${t('readme.seconds_unit')})`}
           </h2>
           <button
             onClick={onReset}
-            className="w-full sm:w-auto px-6 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-lg border border-gray-700 transition-colors"
+            className={`w-full sm:w-auto px-6 py-2 font-semibold rounded-lg border transition-colors ${
+              isDark ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700' : 'bg-white hover:bg-gray-100 text-gray-600 border-gray-300'
+            }`}
           >
             {t('readme.reset')}
           </button>
         </div>
 
-        <div className="bg-gray-900 rounded-xl border border-gray-700 shadow-2xl overflow-hidden">
-          <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 flex flex-wrap justify-between items-center gap-3">
-            <div className="flex bg-gray-900 p-1 rounded-lg border border-gray-700">
+        <div className={`rounded-xl border shadow-2xl overflow-hidden ${
+          isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
+          <div className={`px-4 py-3 border-b flex flex-wrap justify-between items-center gap-3 ${
+            isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <div className={`flex p-1 rounded-lg border ${
+              isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
               <button
                 onClick={() => setViewMode('preview')}
                 className={`flex items-center gap-2 px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
@@ -269,7 +278,7 @@ export const ReadmeDisplay: React.FC<ReadmeDisplayProps> = ({ markdown, onReset,
             </div>
           </div>
 
-          <div className="overflow-auto custom-scrollbar bg-gray-950" style={{ minHeight: '400px', height: '65vh', resize: 'vertical' }}>
+          <div className={`overflow-auto custom-scrollbar ${isDark ? 'bg-gray-950' : 'bg-gray-50'}`} style={{ minHeight: '400px', height: '65vh', resize: 'vertical' }}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={viewMode}

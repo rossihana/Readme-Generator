@@ -37,7 +37,8 @@
       "fetch_tree": "Memindai struktur direktori...",
       "fetch_files": "Membaca file konfigurasi kunci...",
       "analyze": "Menganalisis kode sumber...",
-      "generate": "Menghasilkan README dengan Gemini AI..."
+      "generate": "Menghasilkan README dengan Gemini AI...",
+      "generate_custom": "Menghasilkan README dengan {{provider}} ({{model}})..."
     },
     "recommended": "Recommended",
     "sections": {
@@ -69,7 +70,19 @@
         "no_google_key": "Google API Key tidak tersedia.",
         "internal_error": "Terjadi kesalahan internal server.",
         "unexpected_error": "Terjadi kesalahan yang tidak terduga.",
-        "generate_failed": "Gagal menghasilkan README."
+        "generate_failed": "Gagal menghasilkan README.",
+        "ai_call_failed": "Gagal memanggil AI provider.",
+        "invalid_api_key": "API Key tidak valid atau kedaluwarsa.",
+        "model_not_supported": "Model AI tidak didukung oleh provider.",
+        "oom_error": "Memori RAM/VRAM perangkat tidak mencukupi untuk menjalankan model offline ini.",
+        "rate_limit": "Batas penggunaan (Rate Limit/Quota) API terlampaui.",
+        "suggestions": {
+          "invalid_api_key": "Periksa kembali API Key Anda di modal konfigurasi AI. Pastikan tidak ada spasi tambahan atau kesalahan salin.",
+          "model_not_supported": "Pastikan nama model yang dipilih benar dan didukung oleh provider Anda.",
+          "oom_error": "Pilih model yang lebih ringan (seperti model 1B atau 3B) atau pastikan laptop Anda memiliki cukup RAM/VRAM yang kosong.",
+          "rate_limit": "Silakan tunggu beberapa saat atau ganti dengan API Key/provider yang lain.",
+          "generic": "Periksa konfigurasi provider Anda atau coba model yang berbeda."
+        }
       }
     },
     "button": {
@@ -111,6 +124,42 @@
       "continue": "Ya, Lanjutkan"
     }
   },
+  "ai_config": {
+    "button_tooltip": "Konfigurasi AI",
+    "modal_title": "Konfigurasi AI Assistant",
+    "provider_label": "AI Provider",
+    "model_label": "Intelligence Model",
+    "api_key_label": "API Key",
+    "api_key_placeholder": "Masukkan API Key Anda...",
+    "ollama_url_label": "Ollama URL",
+    "ollama_url_placeholder": "http://localhost:11434",
+    "verify_btn": "Verify Connection",
+    "verifying": "Memverifikasi...",
+    "save_btn": "Save Configuration",
+    "saved_toast": "Konfigurasi berhasil disimpan!",
+    "log_title": "Connection Log",
+    "provider_default": "Default (Gemini Sistem)",
+    "provider_gemini": "Google Gemini",
+    "provider_openai": "OpenAI (GPT)",
+    "provider_claude": "Anthropic Claude",
+    "provider_groq": "Groq",
+    "provider_deepseek": "DeepSeek",
+    "provider_mistral": "Mistral AI",
+    "provider_openrouter": "OpenRouter",
+    "provider_nine_router": "9Router (Proxy)",
+    "provider_ollama": "Ollama (Lokal)",
+    "ollama_hint": "Pastikan Ollama berjalan dengan perintah: ollama serve",
+    "nine_router_url_label": "9Router URL",
+    "nine_router_url_placeholder": "http://localhost:20128",
+    "nine_router_hint": "Pastikan 9Router berjalan. Endpoint default: http://localhost:20128",
+    "fetch_models_btn": "Ambil Model",
+    "fetching_models": "Mengambil daftar model...",
+    "active_badge": "Aktif"
+  },
+  "theme": {
+    "toggle_dark": "Mode Gelap",
+    "toggle_light": "Mode Terang"
+  },
   "readme": {
     "header": "Hasil README",
     "reset": "Buat Baru",
@@ -125,7 +174,7 @@
     "close_expand": "✕ Tutup Expand",
     "edit_info": "Mode Edit — Perubahan diterapkan ke Pratinjau, Raw Code, dan file yang diunduh.",
     "seconds_unit": "d",
-    "footer_attribution": "README ini dihasilkan secara otomatis menggunakan AI (Gemini API). Harap tinjau dan edit kembali sesuai kebutuhan."
+    "footer_attribution": "README ini dihasilkan secara otomatis menggunakan AI. Harap tinjau dan edit kembali sesuai kebutuhan."
   },
   "info": {
     "header": "Pusat Informasi & Bantuan",

@@ -39,6 +39,7 @@ interface GeneratorFormProps {
   onGenerate: (githubUrl: string, preferences: OutputPreferences) => void;
   isLoading: boolean;
   elapsedTime: number;
+  isDark?: boolean;
 }
 
 const PRESET_CARDS = [
@@ -62,7 +63,7 @@ const PRESET_CARDS = [
   }
 ];
 
-export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoading, elapsedTime }) => {
+export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoading, elapsedTime, isDark = true }) => {
   const [url, setUrl] = useState<string>('');
   const [showCustomization, setShowCustomization] = useState<boolean>(false);
   const [hasManualChanges, setHasManualChanges] = useState<boolean>(false);
@@ -190,7 +191,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <label htmlFor="github-url" className="block text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+        <label htmlFor="github-url" className={`block text-sm font-semibold mb-3 flex items-center gap-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
           <GitHubIcon className="w-4 h-4 text-purple-400" />
           {t('generator.step2')}
         </label>
@@ -206,7 +207,11 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 setUrl(e.target.value);
                 if (error) setError(null);
             }}
-            className="w-full bg-gray-900/50 border border-gray-700 rounded-xl py-4 pl-12 pr-4 text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 placeholder-gray-600 shadow-inner"
+            className={`w-full border rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 shadow-inner ${
+              isDark
+                ? 'bg-gray-900/50 border-gray-700 text-gray-100 placeholder-gray-600'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+            }`}
             placeholder={t('generator.placeholder')}
             disabled={isLoading}
           />
@@ -230,7 +235,7 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
         transition={{ delay: 0.2 }}
         className="space-y-4"
       >
-        <label className="block text-sm font-semibold text-gray-300 flex items-center gap-2">
+        <label className={`block text-sm font-semibold flex items-center gap-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
             <Layout className="w-4 h-4 text-purple-400" />
             {t('presets.header')}
         </label>
@@ -246,17 +251,27 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
               className={`text-left p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-3 relative overflow-hidden group ${
                 preferences.projectPurpose === card.id
                   ? 'bg-purple-900/30 border-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.2)] ring-1 ring-purple-500'
-                  : 'bg-gray-800/40 border-gray-700 hover:border-gray-500 hover:bg-gray-800/60'
+                  : isDark
+                  ? 'bg-gray-800/40 border-gray-700 hover:border-gray-500 hover:bg-gray-800/60'
+                  : 'bg-gray-50 border-gray-200 hover:border-purple-300 hover:bg-purple-50/30'
               }`}
             >
-              <div className={`p-2 rounded-lg w-fit ${preferences.projectPurpose === card.id ? 'bg-purple-500 text-white' : 'bg-gray-700 text-gray-400 group-hover:text-gray-200'}`}>
+              <div className={`p-2 rounded-lg w-fit ${
+                preferences.projectPurpose === card.id
+                  ? 'bg-purple-500 text-white'
+                  : isDark ? 'bg-gray-700 text-gray-400 group-hover:text-gray-200' : 'bg-gray-200 text-gray-500 group-hover:text-gray-700'
+              }`}>
                 {card.icon}
               </div>
               <div>
-                <h3 className={`text-sm font-bold mb-1 transition-colors ${preferences.projectPurpose === card.id ? 'text-white' : 'text-gray-200'}`}>
+                <h3 className={`text-sm font-bold mb-1 transition-colors ${
+                  preferences.projectPurpose === card.id
+                    ? 'text-white'
+                    : isDark ? 'text-gray-200' : 'text-gray-800'
+                }`}>
                   {t(card.title)}
                 </h3>
-                <p className="text-xs text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                <p className={`text-xs leading-relaxed transition-colors ${isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-500 group-hover:text-gray-700'}`}>
                   {t(card.desc)}
                 </p>
               </div>
@@ -281,8 +296,10 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
         disabled={isLoading || !preferences.projectPurpose}
         className={`w-full flex flex-col justify-center items-center py-5 px-6 rounded-2xl shadow-xl transition-all duration-500 group relative overflow-hidden ${
             !preferences.projectPurpose || isLoading
-            ? 'bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700'
-            : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white'
+              ? isDark
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
+              : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -318,7 +335,11 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
         <button
           type="button"
           onClick={() => setShowCustomization(!showCustomization)}
-          className="w-full flex items-center justify-between p-4 bg-gray-800/30 hover:bg-gray-800/60 border border-gray-800 rounded-xl text-sm font-semibold text-gray-400 hover:text-gray-200 transition-all group"
+          className={`w-full flex items-center justify-between p-4 border rounded-xl text-sm font-semibold transition-all group ${
+            isDark
+              ? 'bg-gray-800/30 hover:bg-gray-800/60 border-gray-800 text-gray-400 hover:text-gray-200'
+              : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-500 hover:text-gray-700'
+          }`}
         >
           <span className="flex items-center gap-3">
             <Settings2 className={`w-5 h-5 transition-transform duration-500 ${showCustomization ? 'rotate-90 text-purple-400' : 'group-hover:rotate-45'}`} />
@@ -336,18 +357,22 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div className="mt-4 p-6 bg-gray-900/40 rounded-2xl border border-gray-800 space-y-8">
+              <div className={`mt-4 p-6 rounded-2xl border space-y-8 ${
+                isDark ? 'bg-gray-900/40 border-gray-800' : 'bg-gray-50 border-gray-200'
+              }`}>
                 {/* Select Options Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <Globe className="w-3 h-3" /> {t('generator.options.lang_label')}
                     </label>
                     <div className="relative group/select">
                       <select
                         value={preferences.language}
                         onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                        className="w-full bg-gray-950 border border-gray-700 rounded-xl py-3 px-4 text-sm text-white focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all"
+                        className={`w-full border rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all ${
+                          isDark ? 'bg-gray-950 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                        }`}
                       >
                         <option value="indonesian" className="bg-gray-900">{t('generator.options.lang_id')}</option>
                         <option value="english" className="bg-gray-900">{t('generator.options.lang_en')}</option>
@@ -357,14 +382,16 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <MessageSquare className="w-3 h-3" /> {t('generator.options.tone_label')}
                     </label>
                     <div className="relative group/select">
                       <select
                         value={preferences.tone}
                         onChange={(e) => setPreferences({ ...preferences, tone: e.target.value })}
-                        className="w-full bg-gray-950 border border-gray-700 rounded-xl py-3 px-4 text-sm text-white focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all"
+                        className={`w-full border rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all ${
+                          isDark ? 'bg-gray-950 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                        }`}
                       >
                         <option value="professional" className="bg-gray-900">{t('generator.options.tone_prof')}</option>
                         <option value="technical" className="bg-gray-900">{t('generator.options.tone_tech')}</option>
@@ -379,14 +406,16 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 {/* Target & Verbosity */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <Users className="w-3 h-3" /> {t('generator.options.audience_label')}
                     </label>
                     <div className="relative group/select">
                       <select
                         value={preferences.targetAudience}
                         onChange={(e) => setPreferences({ ...preferences, targetAudience: e.target.value })}
-                        className="w-full bg-gray-950 border border-gray-700 rounded-xl py-3 px-4 text-sm text-white focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all"
+                        className={`w-full border rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all ${
+                          isDark ? 'bg-gray-950 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                        }`}
                       >
                         <option value="developer" className="bg-gray-900">{t('generator.options.audience_dev')}</option>
                         <option value="end-user" className="bg-gray-900">{t('generator.options.audience_user')}</option>
@@ -396,14 +425,16 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <FileText className="w-3 h-3" /> {t('generator.options.verbosity_label')}
                     </label>
                     <div className="relative group/select">
                       <select
                         value={preferences.verbosity}
                         onChange={(e) => setPreferences({ ...preferences, verbosity: e.target.value })}
-                        className="w-full bg-gray-950 border border-gray-700 rounded-xl py-3 px-4 text-sm text-white focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all"
+                        className={`w-full border rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer hover:border-gray-500 transition-all ${
+                          isDark ? 'bg-gray-950 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                        }`}
                       >
                         <option value="comprehensive" className="bg-gray-900">{t('generator.options.verbosity_full')}</option>
                         <option value="minimal" className="bg-gray-900">{t('generator.options.verbosity_min')}</option>
@@ -416,59 +447,74 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                 {/* URLs */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <ImageIcon className="w-3 h-3" /> {t('generator.options.logo_label')}
                     </label>
                     <input
                       type="text"
                       value={preferences.logoUrl}
                       onChange={(e) => setPreferences({ ...preferences, logoUrl: e.target.value })}
-                      className="w-full bg-gray-800/50 border border-gray-700 rounded-lg py-2.5 px-4 text-sm text-gray-200"
+                      className={`w-full border rounded-lg py-2.5 px-4 text-sm ${
+                        isDark ? 'bg-gray-800/50 border-gray-700 text-gray-200' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                       placeholder={t('generator.options.logo_placeholder')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <ImageIcon className="w-3 h-3" /> {t('generator.options.screenshot_label')}
                     </label>
                     <input
                       type="text"
                       value={preferences.screenshotUrl}
                       onChange={(e) => setPreferences({ ...preferences, screenshotUrl: e.target.value })}
-                      className="w-full bg-gray-800/50 border border-gray-700 rounded-lg py-2.5 px-4 text-sm text-gray-200"
+                      className={`w-full border rounded-lg py-2.5 px-4 text-sm ${
+                        isDark ? 'bg-gray-800/50 border-gray-700 text-gray-200' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                       placeholder={t('generator.options.screenshot_placeholder')}
                     />
                   </div>
 
                   <div className="sm:col-span-2 space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <label className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                       <LinkIcon className="w-3 h-3" /> {t('generator.options.deploy_label')}
                     </label>
                     <input
                       type="text"
                       value={preferences.deployUrl}
                       onChange={(e) => setPreferences({ ...preferences, deployUrl: e.target.value })}
-                      className="w-full bg-gray-800/50 border border-gray-700 rounded-lg py-2.5 px-4 text-sm text-gray-200"
+                      className={`w-full border rounded-lg py-2.5 px-4 text-sm ${
+                        isDark ? 'bg-gray-800/50 border-gray-700 text-gray-200' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                       placeholder={t('generator.options.deploy_placeholder')}
                     />
                   </div>
                 </div>
 
                 {/* Section Selection */}
-                <div className="space-y-6 pt-4 border-t border-gray-800">
+                <div className={`space-y-6 pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                  {/* Section group headers pick up from isDark context */}
                   <div>
-                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">{t('generator.groups.foundation')}</h4>
+                    <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>{t('generator.groups.foundation')}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {ESSENTIAL_SECTIONS.map((section) => (
-                        <label key={section} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${preferences.includeSections.includes(section) ? 'bg-purple-900/20 border-purple-500/50 text-purple-200' : 'bg-gray-800/30 border-gray-700 text-gray-400 hover:border-gray-600'}`}>
+                        <label key={section} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                            preferences.includeSections.includes(section)
+                              ? isDark
+                                ? 'bg-purple-900/20 border-purple-500/50 text-purple-200'
+                                : 'bg-purple-100 border-purple-400 text-purple-800'
+                              : isDark
+                                ? 'bg-gray-800/30 border-gray-700 text-gray-400 hover:border-gray-600'
+                                : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50'
+                          }`}>
                           <input
                             type="checkbox"
                             checked={preferences.includeSections.includes(section)}
                             onChange={() => handleSectionToggle(section)}
                             className="hidden"
                           />
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${preferences.includeSections.includes(section) ? 'bg-purple-500 border-purple-500' : 'border-gray-600'}`}>
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${preferences.includeSections.includes(section) ? 'bg-purple-500 border-purple-500' : isDark ? 'border-gray-600' : 'border-gray-400'}`}>
                             {preferences.includeSections.includes(section) && <CheckCircle2 className="w-3 h-3 text-white" />}
                           </div>
                           <span className="text-xs font-semibold">{sectionT(section)}</span>
@@ -478,17 +524,25 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   </div>
 
                   <div>
-                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">{t('generator.groups.general')}</h4>
+                    <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>{t('generator.groups.general')}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {STANDARD_SECTIONS.map((section) => (
-                        <label key={section} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${preferences.includeSections.includes(section) ? 'bg-purple-900/20 border-purple-500/50 text-purple-200' : 'bg-gray-800/30 border-gray-700 text-gray-400 hover:border-gray-600'}`}>
+                        <label key={section} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                            preferences.includeSections.includes(section)
+                              ? isDark
+                                ? 'bg-purple-900/20 border-purple-500/50 text-purple-200'
+                                : 'bg-purple-100 border-purple-400 text-purple-800'
+                              : isDark
+                                ? 'bg-gray-800/30 border-gray-700 text-gray-400 hover:border-gray-600'
+                                : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50'
+                          }`}>
                           <input
                             type="checkbox"
                             checked={preferences.includeSections.includes(section)}
                             onChange={() => handleSectionToggle(section)}
                             className="hidden"
                           />
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${preferences.includeSections.includes(section) ? 'bg-purple-500 border-purple-500' : 'border-gray-600'}`}>
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${preferences.includeSections.includes(section) ? 'bg-purple-500 border-purple-500' : isDark ? 'border-gray-600' : 'border-gray-400'}`}>
                             {preferences.includeSections.includes(section) && <CheckCircle2 className="w-3 h-3 text-white" />}
                           </div>
                           <span className="text-xs font-semibold">{sectionT(section)}</span>
@@ -498,17 +552,25 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
                   </div>
 
                   <div>
-                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">{t('generator.groups.extra')}</h4>
+                    <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>{t('generator.groups.extra')}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {ADVANCED_SECTIONS.map((section) => (
-                        <label key={section.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${preferences.includeSections.includes(section.id) ? 'bg-purple-900/20 border-purple-500/50 text-purple-200' : 'bg-gray-800/30 border-gray-700 text-gray-400 hover:border-gray-600'}`}>
+                        <label key={section.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                            preferences.includeSections.includes(section.id)
+                              ? isDark
+                                ? 'bg-purple-900/20 border-purple-500/50 text-purple-200'
+                                : 'bg-purple-100 border-purple-400 text-purple-800'
+                              : isDark
+                                ? 'bg-gray-800/30 border-gray-700 text-gray-400 hover:border-gray-600'
+                                : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50'
+                          }`}>
                           <input
                             type="checkbox"
                             checked={preferences.includeSections.includes(section.id)}
                             onChange={() => handleSectionToggle(section.id)}
                             className="hidden"
                           />
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${preferences.includeSections.includes(section.id) ? 'bg-purple-500 border-purple-500' : 'border-gray-600'}`}>
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${preferences.includeSections.includes(section.id) ? 'bg-purple-500 border-purple-500' : isDark ? 'border-gray-600' : 'border-gray-400'}`}>
                             {preferences.includeSections.includes(section.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
                           </div>
                           <span className="text-xs font-semibold">{sectionT(section.id)}</span>
@@ -536,20 +598,24 @@ export const GeneratorForm: React.FC<GeneratorFormProps> = ({ onGenerate, isLoad
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-gray-900 border border-purple-500/30 rounded-3xl p-8 max-w-sm w-full shadow-2xl"
+              className={`border rounded-3xl p-8 max-w-sm w-full shadow-2xl ${
+                isDark ? 'bg-gray-900 border-purple-500/30' : 'bg-white border-purple-300/50'
+              }`}
             >
-              <div className="w-12 h-12 bg-red-900/30 text-red-400 rounded-2xl flex items-center justify-center mb-6">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-600'}`}>
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{t('generator.warning.title')}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed mb-8">
+              <h3 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('generator.warning.title')}</h3>
+              <p className={`text-sm leading-relaxed mb-8 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {t('generator.warning.desc')}
               </p>
               <div className="flex gap-4">
                 <button 
                   type="button"
                   onClick={() => setPendingPreset(null)}
-                  className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 text-sm font-bold hover:bg-gray-700 transition-colors"
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+                    isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
                 >
                   {t('generator.warning.cancel')}
                 </button>

@@ -86,7 +86,6 @@ class OutputPreferences(BaseModel):
     tone: str = "professional"
     complexity: str = "standard"
     includeSections: list[str] = ["Features", "Installation", "Usage", "Contributing", "License"]
-    # New Phase 2 fields
     targetAudience: str = "developer"
     verbosity: str = "comprehensive"
     useEmojis: bool = True
@@ -96,9 +95,26 @@ class OutputPreferences(BaseModel):
     deployUrl: str = ""
     includeTOC: bool = True
 
+class AIConfig(BaseModel):
+    provider: str = "default"  # default, gemini_custom, openai, claude, groq, deepseek, ollama, mistral, openrouter, nine_router
+    model: str = "gemini-2.5-flash"
+    apiKey: str = ""
+    ollamaUrl: str = "http://localhost:11434"
+    nineRouterUrl: str = "http://localhost:20128"
+
 class GitHubUrl(BaseModel):
     githubUrl: str
     preferences: OutputPreferences = OutputPreferences()
+    aiConfig: AIConfig = AIConfig()
+
+class VerifyConnectionRequest(BaseModel):
+    aiConfig: AIConfig
+
+class OllamaModelsRequest(BaseModel):
+    ollamaUrl: str = "http://localhost:11434"
+
+class NineRouterModelsRequest(BaseModel):
+    nineRouterUrl: str = "http://localhost:20128"
 
 def decode_base64_content(encoded_content: str) -> str:
     """Mendekode konten Base64."""
@@ -429,6 +445,137 @@ JANGAN sertakan bagian yang tidak ada dalam daftar yang diminta di atas (kecuali
         {"role": "user", "content": user_prompt}
     ]
 
+# ---------------------------------------------------------------------------
+# Multi-provider AI call functions
+# ---------------------------------------------------------------------------
+
+async def call_openai_api(prompt_messages: list, api_key: str, model: str) -> str:
+    """Call OpenAI-compatible API."""
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages]
+    payload = {"model": model, "messages": messages, "max_tokens": 16384, "temperature": 0.7}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+async def call_claude_api(prompt_messages: list, api_key: str, model: str) -> str:
+    """Call Anthropic Claude API."""
+    headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "Content-Type": "application/json"}
+    system_text = next((m["content"] for m in prompt_messages if m["role"] == "system"), "")
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages if m["role"] != "system"]
+    payload = {"model": model, "max_tokens": 16384, "system": system_text, "messages": messages}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://api.anthropic.com/v1/messages", json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        return resp.json()["content"][0]["text"]
+
+async def call_groq_api(prompt_messages: list, api_key: str, model: str) -> str:
+    """Call Groq API (OpenAI-compatible)."""
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages]
+    payload = {"model": model, "messages": messages, "max_tokens": 16384, "temperature": 0.7}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+async def call_deepseek_api(prompt_messages: list, api_key: str, model: str) -> str:
+    """Call DeepSeek API (OpenAI-compatible)."""
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages]
+    payload = {"model": model, "messages": messages, "max_tokens": 8192, "temperature": 0.7}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://api.deepseek.com/chat/completions", json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+async def call_mistral_api(prompt_messages: list, api_key: str, model: str) -> str:
+    """Call Mistral API (OpenAI-compatible)."""
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages]
+    payload = {"model": model, "messages": messages, "max_tokens": 8192, "temperature": 0.7}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://api.mistral.ai/v1/chat/completions", json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+async def call_openrouter_api(prompt_messages: list, api_key: str, model: str) -> str:
+    """Call OpenRouter API (OpenAI-compatible)."""
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "AI README Generator"
+    }
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages]
+    payload = {"model": model, "messages": messages, "temperature": 0.7, "stream": False}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+async def call_9router_api(prompt_messages: list, url: str, api_key: str, model: str) -> str:
+    """Call local or custom 9Router API (OpenAI-compatible)."""
+    import json
+    base = url.rstrip("/")
+    endpoint = f"{base}/v1/chat/completions"
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    messages = [{"role": m["role"], "content": m["content"]} for m in prompt_messages]
+    payload = {"model": model, "messages": messages, "temperature": 0.7, "stream": False}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(endpoint, json=payload, headers=headers, timeout=120.0)
+        resp.raise_for_status()
+        try:
+            return resp.json()["choices"][0]["message"]["content"]
+        except (json.JSONDecodeError, KeyError, ValueError):
+            raw_text = resp.text.strip()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Respon 9Router bukan JSON yang valid. Pastikan 9Router berjalan dan dikonfigurasi dengan benar. Isi respon: {raw_text[:250]}"
+            )
+
+async def call_ollama_api(prompt_messages: list, ollama_url: str, model: str) -> str:
+    """Call local Ollama API."""
+    system_text = next((m["content"] for m in prompt_messages if m["role"] == "system"), "")
+    user_text = next((m["content"] for m in prompt_messages if m["role"] == "user"), "")
+    combined = f"{system_text}\n\n{user_text}" if system_text else user_text
+    payload = {"model": model, "prompt": combined, "stream": False}
+    base = ollama_url.rstrip("/")
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(f"{base}/api/generate", json=payload, timeout=300.0)
+        resp.raise_for_status()
+        return resp.json()["response"]
+
+async def call_ai_assistant(prompt_messages: list, ai_config: AIConfig) -> str:
+    """Route call to appropriate AI provider based on ai_config."""
+    provider = ai_config.provider
+    model = ai_config.model
+    api_key = ai_config.apiKey
+
+    if provider == "openai":
+        return await call_openai_api(prompt_messages, api_key, model)
+    elif provider == "claude":
+        return await call_claude_api(prompt_messages, api_key, model)
+    elif provider == "groq":
+        return await call_groq_api(prompt_messages, api_key, model)
+    elif provider == "deepseek":
+        return await call_deepseek_api(prompt_messages, api_key, model)
+    elif provider == "mistral":
+        return await call_mistral_api(prompt_messages, api_key, model)
+    elif provider == "openrouter":
+        return await call_openrouter_api(prompt_messages, api_key, model)
+    elif provider == "nine_router":
+        return await call_9router_api(prompt_messages, ai_config.nineRouterUrl, api_key, model)
+    elif provider == "ollama":
+        return await call_ollama_api(prompt_messages, ai_config.ollamaUrl, model)
+    else:
+        # Default and gemini_custom both call Google AI
+        keys = [api_key] if (provider == "gemini_custom" and api_key) else GOOGLE_API_KEYS
+        return await call_google_ai(prompt_messages, keys)
+
 async def call_google_ai(prompt_messages: list, api_keys: list) -> str:
     """Call Google AI Studio API directly with rotation and failover logic"""
     if not api_keys:
@@ -481,8 +628,18 @@ async def call_google_ai(prompt_messages: list, api_keys: list) -> str:
                 return result["candidates"][0]["content"]["parts"][0]["text"]
                 
             except httpx.HTTPStatusError as e:
-                # Handle Rate Limit (429), Service Unavailable (503), and Invalid API Key (400 with specific reason)
+                # Get the detailed message if available
+                error_msg = ""
+                try:
+                    error_data = e.response.json()
+                    error_msg = error_data.get("error", {}).get("message", "")
+                except Exception:
+                    error_msg = e.response.text
+
+                # Handle Rate Limit (429), Service Unavailable (503)
                 if e.response.status_code in [429, 503]:
+                    if num_keys == 1:
+                        raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.rate_limit")
                     reason = "rate limit (429)" if e.response.status_code == 429 else "service busy (503)"
                     print(f"[API] Key {api_key_index % num_keys} hit {reason}. Attempt {attempt + 1}/{max_attempts}")
                     api_key_index = (api_key_index + 1) % num_keys
@@ -491,24 +648,35 @@ async def call_google_ai(prompt_messages: list, api_keys: list) -> str:
                         await asyncio.sleep(wait_time)
                     continue
                 
-                if e.response.status_code == 400:
-                    error_data = e.response.json()
-                    print(f"[DEBUG] Google 400 Error: {error_data}", flush=True)
-                    error_reason = error_data.get("error", {}).get("status", "")
-                    
-                    if "INVALID_ARGUMENT" in error_reason or "API_KEY_INVALID" in str(error_data):
+                # Check for Invalid API key specifically (status 400 with API_KEY_INVALID or status 403/401)
+                if e.response.status_code in [400, 401, 403]:
+                    try:
+                        error_data = e.response.json()
+                        error_reason = error_data.get("error", {}).get("status", "")
+                        error_text = str(error_data)
+                    except Exception:
+                        error_reason = ""
+                        error_text = e.response.text
+
+                    if "INVALID_ARGUMENT" in error_reason or "API_KEY_INVALID" in error_text or "not valid" in error_text:
                         print(f"[API] Key {api_key_index % num_keys} is REJECTED by Google. Rotating...", flush=True)
+                        if num_keys == 1:
+                            raise HTTPException(status_code=400, detail="generator.errors.api.invalid_api_key")
                         api_key_index = (api_key_index + 1) % num_keys
                         continue
                 
-                raise HTTPException(status_code=e.response.status_code, detail="generator.errors.api.unknown")
+                if num_keys == 1 or attempt == max_attempts - 1:
+                    raise HTTPException(status_code=e.response.status_code, detail=f"Google AI Error: {error_msg}")
+                
+                api_key_index = (api_key_index + 1) % num_keys
+                continue
 
             except Exception as e:
                 print(f"Internal Error in call_google_ai: {str(e)}")
-                if attempt < max_attempts - 1:
-                    api_key_index = (api_key_index + 1) % num_keys
-                    continue
-                raise HTTPException(status_code=500, detail="generator.errors.api.unknown")
+                if num_keys == 1 or attempt == max_attempts - 1:
+                    raise HTTPException(status_code=500, detail=f"Google AI Connection Error: {str(e)}")
+                api_key_index = (api_key_index + 1) % num_keys
+                continue
 
     raise HTTPException(status_code=503, detail="generator.errors.api.busy")
 
@@ -518,11 +686,15 @@ async def read_root():
     return {"message": "Welcome to the AI README Generator Backend!"}
 
 
-async def _readme_event_stream(github_url: str, preferences: OutputPreferences):
+async def _readme_event_stream(github_url: str, preferences: OutputPreferences, ai_config: AIConfig = None):
+    if ai_config is None:
+        ai_config = AIConfig()
     """Generator async yang menghasilkan event SSE di setiap tahap proses."""
 
     def make_event(event_name: str, data: dict) -> str:
         return f"event: {event_name}\ndata: {json.dumps(data)}\n\n"
+
+    github_phase_done = False  # track whether GitHub fetch is complete
 
     try:
         url_parts = github_url.split('/')
@@ -608,6 +780,7 @@ async def _readme_event_stream(github_url: str, preferences: OutputPreferences):
             repo_data["key_files_content"] = key_files
 
         # --- TAHAP 3: Analisis & Build Prompt ---
+        github_phase_done = True  # GitHub data successfully fetched
         yield make_event("status", {"key": "generator.loading.analyze"})
         await asyncio.sleep(0)
         prompt_messages = build_llm_prompt(repo_data, preferences)
@@ -615,22 +788,139 @@ async def _readme_event_stream(github_url: str, preferences: OutputPreferences):
         # --- TAHAP 4: Panggil AI ---
         yield make_event("status", {"key": "generator.loading.generate"})
         await asyncio.sleep(0)
-        readme_content = await call_google_ai(prompt_messages, GOOGLE_API_KEYS)
+        try:
+            readme_content = await call_ai_assistant(prompt_messages, ai_config)
+        except httpx.HTTPStatusError as ai_err:
+            raw_detail = ""
+            try:
+                raw_detail = ai_err.response.json().get("error", {}).get("message") or ai_err.response.text
+            except Exception:
+                raw_detail = str(ai_err)
+            
+            # Map status codes to specific translation keys
+            msg_key = "generator.errors.api.ai_call_failed"
+            status = ai_err.response.status_code
+            
+            if status in [401, 403]:
+                msg_key = "generator.errors.api.invalid_api_key"
+            elif status == 429:
+                msg_key = "generator.errors.api.rate_limit"
+            elif status == 404:
+                msg_key = "generator.errors.api.model_not_supported"
+            elif status == 400:
+                if "api_key" in raw_detail.lower() or "api key" in raw_detail.lower() or "not valid" in raw_detail.lower():
+                    msg_key = "generator.errors.api.invalid_api_key"
+                else:
+                    msg_key = "generator.errors.api.model_not_supported"
+            elif status in [500, 503]:
+                if ai_config.provider == "ollama":
+                    msg_key = "generator.errors.api.oom_error"
+                elif "quota" in raw_detail.lower() or "limit" in raw_detail.lower():
+                    msg_key = "generator.errors.api.rate_limit"
+
+            yield make_event("error", {
+                "message": msg_key,
+                "detail": raw_detail,
+                "provider": ai_config.provider,
+                "model": ai_config.model,
+            })
+            return
+        except HTTPException as ai_err:
+            # Propagate HTTPException details raised inside call_ai_assistant
+            msg_key = ai_err.detail if ai_err.detail.startswith("generator.errors.api") else "generator.errors.api.ai_call_failed"
+            raw_detail = "" if ai_err.detail.startswith("generator.errors.api") else ai_err.detail
+            yield make_event("error", {
+                "message": msg_key,
+                "detail": raw_detail,
+                "provider": ai_config.provider,
+                "model": ai_config.model,
+            })
+            return
+        except Exception as ai_err:
+            msg_key = "generator.errors.api.ai_call_failed"
+            err_str = str(ai_err)
+            if "memory" in err_str.lower() or "oom" in err_str.lower():
+                msg_key = "generator.errors.api.oom_error"
+            elif "unauthorized" in err_str.lower() or "api key" in err_str.lower() or "apikey" in err_str.lower():
+                msg_key = "generator.errors.api.invalid_api_key"
+
+            yield make_event("error", {
+                "message": msg_key,
+                "detail": err_str,
+                "provider": ai_config.provider,
+                "model": ai_config.model,
+            })
+            return
 
         # --- SELESAI: Kirim hasil README ---
         yield make_event("result", {"readme": readme_content})
         yield make_event("done", {})
 
     except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
+        if github_phase_done:
+            raw_detail = ""
+            try:
+                raw_detail = e.response.json().get("error", {}).get("message") or e.response.text
+            except Exception:
+                raw_detail = str(e)
+            
+            msg_key = "generator.errors.api.ai_call_failed"
+            status = e.response.status_code
+            if status in [401, 403]:
+                msg_key = "generator.errors.api.invalid_api_key"
+            elif status == 429:
+                msg_key = "generator.errors.api.rate_limit"
+            elif status == 404:
+                msg_key = "generator.errors.api.model_not_supported"
+            elif status == 400:
+                if "api_key" in raw_detail.lower() or "api key" in raw_detail.lower() or "not valid" in raw_detail.lower():
+                    msg_key = "generator.errors.api.invalid_api_key"
+                else:
+                    msg_key = "generator.errors.api.model_not_supported"
+            elif status in [500, 503] and ai_config.provider == "ollama":
+                msg_key = "generator.errors.api.oom_error"
+
+            yield make_event("error", {
+                "message": msg_key,
+                "detail": raw_detail,
+                "provider": ai_config.provider,
+                "model": ai_config.model,
+            })
+        elif e.response.status_code == 404:
             yield make_event("error", {"message": "generator.errors.api.repo_not_found"})
         else:
             yield make_event("error", {"message": "generator.errors.api.fetch_failed"})
     except HTTPException as e:
-        yield make_event("error", {"message": e.detail})
+        if github_phase_done:
+            msg_key = e.detail if e.detail.startswith("generator.errors.api") else "generator.errors.api.ai_call_failed"
+            raw_detail = "" if e.detail.startswith("generator.errors.api") else e.detail
+            yield make_event("error", {
+                "message": msg_key,
+                "detail": raw_detail,
+                "provider": ai_config.provider,
+                "model": ai_config.model
+            })
+        else:
+            yield make_event("error", {"message": e.detail})
     except Exception as e:
         print(f"Unhandled stream error: {e}")
-        yield make_event("error", {"message": "generator.errors.api.internal_error"})
+        msg_key = "generator.errors.api.internal_error"
+        if github_phase_done:
+            msg_key = "generator.errors.api.ai_call_failed"
+            err_str = str(e)
+            if "memory" in err_str.lower() or "oom" in err_str.lower():
+                msg_key = "generator.errors.api.oom_error"
+            elif "unauthorized" in err_str.lower() or "api key" in err_str.lower():
+                msg_key = "generator.errors.api.invalid_api_key"
+            
+            yield make_event("error", {
+                "message": msg_key,
+                "detail": err_str,
+                "provider": ai_config.provider,
+                "model": ai_config.model
+            })
+        else:
+            yield make_event("error", {"message": msg_key, "detail": str(e)})
 
 
 @app.post("/generate-readme")
@@ -642,7 +932,7 @@ async def generate_readme_api(github_url_data: GitHubUrl):
         raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url")
 
     return StreamingResponse(
-        _readme_event_stream(github_url, github_url_data.preferences),
+        _readme_event_stream(github_url, github_url_data.preferences, github_url_data.aiConfig),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -650,3 +940,135 @@ async def generate_readme_api(github_url_data: GitHubUrl):
             "X-Accel-Buffering": "no",
         }
     )
+
+
+@app.post("/verify-connection")
+async def verify_connection(request: VerifyConnectionRequest):
+    """Verify AI provider connection and return step-by-step logs."""
+    cfg = request.aiConfig
+    logs = []
+    try:
+        logs.append(f"[INFO] Memulai verifikasi untuk provider: {cfg.provider.upper()}...")
+        logs.append(f"[INFO] Model target: {cfg.model}")
+
+        if cfg.provider == "ollama":
+            base = cfg.ollamaUrl.rstrip("/")
+            logs.append(f"[INFO] Menghubungi Ollama di {base}/api/tags...")
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"{base}/api/tags", timeout=10.0)
+                resp.raise_for_status()
+                data = resp.json()
+                model_names = [m["name"] for m in data.get("models", [])]
+                logs.append(f"[SUCCESS] Terhubung ke Ollama!")
+                if model_names:
+                    logs.append(f"[INFO] Model tersedia: {', '.join(model_names)}")
+                    if cfg.model not in model_names:
+                        logs.append(f"[WARN] Model '{cfg.model}' tidak ditemukan. Pastikan sudah di-pull.")
+                    else:
+                        logs.append(f"[SUCCESS] Model '{cfg.model}' siap digunakan.")
+                else:
+                    logs.append("[WARN] Tidak ada model yang terpasang di Ollama.")
+            return {"status": "success", "logs": logs}
+
+        elif cfg.provider == "nine_router":
+            base = cfg.nineRouterUrl.rstrip("/")
+            logs.append(f"[INFO] Menghubungi 9Router di {base}/v1/models...")
+            async with httpx.AsyncClient() as client:
+                headers = {}
+                if cfg.apiKey:
+                    headers["Authorization"] = f"Bearer {cfg.apiKey}"
+                resp = await client.get(f"{base}/v1/models", headers=headers, timeout=10.0)
+                resp.raise_for_status()
+                data = resp.json()
+                models = data.get("data", [])
+                model_names = [m["id"] for m in models if "id" in m]
+                logs.append(f"[SUCCESS] Terhubung ke 9Router!")
+                if model_names:
+                    logs.append(f"[INFO] Model tersedia: {', '.join(model_names)}")
+                    if cfg.model not in model_names:
+                        logs.append(f"[WARN] Model '{cfg.model}' tidak terdaftar di 9Router.")
+                    else:
+                        logs.append(f"[SUCCESS] Model '{cfg.model}' siap digunakan.")
+                else:
+                    logs.append("[WARN] Tidak ada model aktif di 9Router.")
+            return {"status": "success", "logs": logs}
+
+        elif cfg.provider in ["openai", "groq", "deepseek", "claude", "gemini_custom", "mistral", "openrouter"]:
+            if not cfg.apiKey:
+                logs.append("[ERROR] API Key tidak boleh kosong.")
+                return {"status": "error", "logs": logs}
+
+            logs.append("[INFO] Mengirim permintaan tes ke API...")
+            test_messages = [
+                {"role": "user", "content": "Reply with the single word: OK"}
+            ]
+            if cfg.provider == "openai":
+                result = await call_openai_api(test_messages, cfg.apiKey, cfg.model)
+            elif cfg.provider == "claude":
+                result = await call_claude_api(test_messages, cfg.apiKey, cfg.model)
+            elif cfg.provider == "groq":
+                result = await call_groq_api(test_messages, cfg.apiKey, cfg.model)
+            elif cfg.provider == "deepseek":
+                result = await call_deepseek_api(test_messages, cfg.apiKey, cfg.model)
+            elif cfg.provider == "mistral":
+                result = await call_mistral_api(test_messages, cfg.apiKey, cfg.model)
+            elif cfg.provider == "openrouter":
+                result = await call_openrouter_api(test_messages, cfg.apiKey, cfg.model)
+            else:  # gemini_custom
+                result = await call_google_ai(test_messages, [cfg.apiKey])
+
+            logs.append(f"[SUCCESS] Koneksi berhasil! Respon API diterima.")
+            logs.append(f"[SUCCESS] Model '{cfg.model}' siap digunakan.")
+            return {"status": "success", "logs": logs}
+
+        else:  # default
+            logs.append("[INFO] Menggunakan konfigurasi default (Gemini API Key sistem).")
+            if not GOOGLE_API_KEYS:
+                logs.append("[ERROR] Tidak ada Google API Key yang terkonfigurasi di server.")
+                return {"status": "error", "logs": logs}
+            logs.append(f"[INFO] {len(GOOGLE_API_KEYS)} API Key sistem tersedia.")
+            logs.append("[SUCCESS] Konfigurasi default aktif dan siap digunakan.")
+            return {"status": "success", "logs": logs}
+
+    except httpx.ConnectError:
+        logs.append(f"[ERROR] Koneksi ditolak (Connection Refused). Pastikan service aktif dan URL benar.")
+        return {"status": "error", "logs": logs}
+    except httpx.TimeoutException:
+        logs.append("[ERROR] Koneksi timeout. Server tidak merespons dalam batas waktu.")
+        return {"status": "error", "logs": logs}
+    except httpx.HTTPStatusError as e:
+        logs.append(f"[ERROR] HTTP {e.response.status_code}: {e.response.text[:200]}")
+        return {"status": "error", "logs": logs}
+    except Exception as e:
+        logs.append(f"[ERROR] Kesalahan tidak terduga: {str(e)[:200]}")
+        return {"status": "error", "logs": logs}
+
+
+@app.post("/ollama-models")
+async def get_ollama_models(request: OllamaModelsRequest):
+    """Fetch list of installed models from local Ollama instance."""
+    base = request.ollamaUrl.rstrip("/")
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{base}/api/tags", timeout=8.0)
+            resp.raise_for_status()
+            data = resp.json()
+            model_names = [m["name"] for m in data.get("models", [])]
+            return {"models": model_names}
+    except Exception:
+        return {"models": []}
+
+@app.post("/nine-router-models")
+async def get_nine_router_models(request: NineRouterModelsRequest):
+    """Fetch list of active models from local or custom 9Router instance."""
+    base = request.nineRouterUrl.rstrip("/")
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{base}/v1/models", timeout=8.0)
+            resp.raise_for_status()
+            data = resp.json()
+            models = data.get("data", [])
+            model_names = [m["id"] for m in models if "id" in m]
+            return {"models": model_names}
+    except Exception:
+        return {"models": []}

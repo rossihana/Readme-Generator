@@ -37,7 +37,8 @@
       "fetch_tree": "Scanning directory structure...",
       "fetch_files": "Reading key configuration files...",
       "analyze": "Analyzing source code...",
-      "generate": "Generating README with Gemini AI..."
+      "generate": "Generating README with Gemini AI...",
+      "generate_custom": "Generating README with {{provider}} ({{model}})..."
     },
     "recommended": "Recommended",
     "sections": {
@@ -69,7 +70,19 @@
         "no_google_key": "Google API Key is not available.",
         "internal_error": "Internal Server Error occurred.",
         "unexpected_error": "An unexpected error occurred.",
-        "generate_failed": "Failed to generate README."
+        "generate_failed": "Failed to generate README.",
+        "ai_call_failed": "Failed to call the AI provider.",
+        "invalid_api_key": "API Key is invalid or expired.",
+        "model_not_supported": "AI model is not supported by the provider.",
+        "oom_error": "System RAM/VRAM is insufficient to run this offline model.",
+        "rate_limit": "API usage limit (Rate Limit/Quota) exceeded.",
+        "suggestions": {
+          "invalid_api_key": "Double check your API Key in the AI Configuration modal. Make sure there are no extra spaces or copy errors.",
+          "model_not_supported": "Ensure the selected model name is correct and supported by your provider.",
+          "oom_error": "Choose a lighter model (like a 1B or 3B model) or make sure your laptop has enough free RAM/VRAM.",
+          "rate_limit": "Please wait a moment or change to another API Key/provider.",
+          "generic": "Check your provider settings or try a different model."
+        }
       }
     },
     "button": {
@@ -111,6 +124,42 @@
       "continue": "Yes, Continue"
     }
   },
+  "ai_config": {
+    "button_tooltip": "AI Configuration",
+    "modal_title": "AI Assistant Configuration",
+    "provider_label": "AI Provider",
+    "model_label": "Intelligence Model",
+    "api_key_label": "API Key",
+    "api_key_placeholder": "Enter your API Key...",
+    "ollama_url_label": "Ollama URL",
+    "ollama_url_placeholder": "http://localhost:11434",
+    "verify_btn": "Verify Connection",
+    "verifying": "Verifying...",
+    "save_btn": "Save Configuration",
+    "saved_toast": "Configuration saved successfully!",
+    "log_title": "Connection Log",
+    "provider_default": "Default (System Gemini)",
+    "provider_gemini": "Google Gemini",
+    "provider_openai": "OpenAI (GPT)",
+    "provider_claude": "Anthropic Claude",
+    "provider_groq": "Groq",
+    "provider_deepseek": "DeepSeek",
+    "provider_mistral": "Mistral AI",
+    "provider_openrouter": "OpenRouter",
+    "provider_nine_router": "9Router (Proxy)",
+    "provider_ollama": "Ollama (Local)",
+    "ollama_hint": "Make sure Ollama is running with: ollama serve",
+    "nine_router_url_label": "9Router URL",
+    "nine_router_url_placeholder": "http://localhost:20128",
+    "nine_router_hint": "Make sure 9Router is running. Default endpoint: http://localhost:20128",
+    "fetch_models_btn": "Fetch Models",
+    "fetching_models": "Fetching model list...",
+    "active_badge": "Active"
+  },
+  "theme": {
+    "toggle_dark": "Dark Mode",
+    "toggle_light": "Light Mode"
+  },
   "readme": {
     "header": "README Result",
     "reset": "Create New",
@@ -125,7 +174,7 @@
     "close_expand": "✕ Close Expand",
     "edit_info": "Edit Mode — Changes are applied to Preview, Raw Code, and downloaded file.",
     "seconds_unit": "s",
-    "footer_attribution": "This README was automatically generated using AI (Gemini API). Please review and edit as needed."
+    "footer_attribution": "This README was automatically generated using AI. Please review and edit as needed."
   },
   "info": {
     "header": "Information & Help Center",
