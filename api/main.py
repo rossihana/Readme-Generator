@@ -945,98 +945,20 @@ async def generate_readme_api(github_url_data: GitHubUrl):
 @app.post("/prepare-prompt")
 async def prepare_prompt_api(github_url_data: GitHubUrl):
     """
-    Endpoint untuk local AI providers (Ollama, 9Router).
-    Scrape GitHub, build prompt, lalu return prompt messages sebagai JSON.
-    Browser akan memanggil localhost langsung menggunakan prompt ini.
+    Fetches GitHub repo data and builds the LLM prompt messages list.
+    Used by the frontend when calling local AI providers (Ollama, 9Router)
+    directly from the browser — the cloud backend handles only the GitHub
+    scraping step, then the browser calls localhost AI on its own.
     """
     github_url = github_url_data.githubUrl.strip()
-    preferences = github_url_data.preferences
 
     if not GITHUB_URL_REGEX.match(github_url):
         raise HTTPException(status_code=400, detail="generator.errors.api.invalid_url")
 
-    try:
-        url_parts = github_url.split('/')
-        owner = url_parts[3]
-        repo = url_parts[4].replace(".git", "")
+    repo_data = await fetch_github_data(github_url, GITHUB_PAT)
+    prompt_messages = build_llm_prompt(repo_data, github_url_data.preferences)
 
-        GITHUB_HEADERS_LOCAL = {
-            "Authorization": f"token {GITHUB_PAT}",
-            "Accept": "application/vnd.github.v3+json"
-        } if GITHUB_PAT else {"Accept": "application/vnd.github.v3+json"}
-
-        repo_data = {}
-        async with httpx.AsyncClient() as client:
-            # Fetch repo metadata
-            resp = await client.get(
-                f"https://api.github.com/repos/{owner}/{repo}",
-                headers=GITHUB_HEADERS_LOCAL
-            )
-            resp.raise_for_status()
-            repo_info = resp.json()
-            repo_data["name"] = repo_info.get("name")
-            repo_data["description"] = repo_info.get("description", "")
-            repo_data["language"] = repo_info.get("language", "")
-            repo_data["html_url"] = repo_info.get("html_url", github_url)
-            repo_data["owner"] = repo_info.get("owner", {})
-            repo_data["created_at"] = repo_info.get("created_at")
-            repo_data["pushed_at"] = repo_info.get("pushed_at")
-
-            # Fetch contributors
-            contrib_resp = await client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page=5",
-                headers=GITHUB_HEADERS_LOCAL
-            )
-            repo_data["contributors"] = contrib_resp.json() if contrib_resp.status_code == 200 else []
-
-            # Fetch directory structure
-            async def get_dir_async(dir_path: str = "") -> dict:
-                r = await client.get(
-                    f"https://api.github.com/repos/{owner}/{repo}/contents/{dir_path}",
-                    headers=GITHUB_HEADERS_LOCAL
-                )
-                r.raise_for_status()
-                structure = {}
-                for item in r.json():
-                    if item["type"] == "dir":
-                        structure[item["name"]] = await get_dir_async(f"{dir_path}/{item['name']}")
-                    else:
-                        structure[item["name"]] = "file"
-                return structure
-            repo_data["full_directory_structure"] = await get_dir_async()
-
-            # Fetch root files + key files
-            root_resp = await client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/",
-                headers=GITHUB_HEADERS_LOCAL
-            )
-            root_resp.raise_for_status()
-            root_contents = root_resp.json()
-            repo_data["files"] = [i["name"] for i in root_contents if i["type"] == "file"]
-
-            key_files = {"package.json": "", "requirements.txt": ""}
-            for item in root_contents:
-                if item["type"] == "file" and item["name"] in key_files:
-                    fc = await client.get(item["url"], headers=GITHUB_HEADERS_LOCAL)
-                    fc.raise_for_status()
-                    fd = fc.json()
-                    key_files[item["name"]] = (
-                        decode_base64_content(fd["content"])
-                        if fd.get("encoding") == "base64"
-                        else fd.get("content", "")
-                    )
-            repo_data["key_files_content"] = key_files
-
-        # Build prompt
-        prompt_messages = build_llm_prompt(repo_data, preferences)
-        return {"messages": prompt_messages}
-
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            raise HTTPException(status_code=404, detail="generator.errors.api.repo_not_found")
-        raise HTTPException(status_code=502, detail="generator.errors.api.fetch_failed")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"messages": prompt_messages}
 
 
 @app.post("/verify-connection")
@@ -1129,14 +1051,6 @@ async def verify_connection(request: VerifyConnectionRequest):
 
     except httpx.ConnectError:
         logs.append(f"[ERROR] Koneksi ditolak (Connection Refused). Pastikan service aktif dan URL benar.")
-        url_to_check = cfg.ollamaUrl if cfg.provider == "ollama" else (cfg.nineRouterUrl if cfg.provider == "nine_router" else "")
-        if url_to_check and any(loc in url_to_check for loc in ["localhost", "127.0.0.1"]):
-            logs.append("[WARN] TIP: Backend Anda saat ini berjalan di cloud (Vercel), sehingga tidak bisa menghubungi 'localhost' (laptop Anda) secara langsung.")
-            logs.append("[WARN] Solusi: Gunakan tunnel tool seperti Ngrok/Localtunnel untuk membuat port lokal Anda publik.")
-            if cfg.provider == "ollama":
-                logs.append("[WARN] Langkah: Jalankan 'ngrok http 11434' lalu ganti Ollama URL dengan alamat https dari Ngrok.")
-            else:
-                logs.append("[WARN] Langkah: Jalankan 'ngrok http 20128' lalu ganti 9Router URL dengan alamat https dari Ngrok.")
         return {"status": "error", "logs": logs}
     except httpx.TimeoutException:
         logs.append("[ERROR] Koneksi timeout. Server tidak merespons dalam batas waktu.")
