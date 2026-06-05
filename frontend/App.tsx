@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GeneratorForm } from './components/GeneratorForm';
 import { ReadmeDisplay } from './components/ReadmeDisplay';
-import { SparklesIcon } from './components/icons';
+import { SparklesIcon, GitHubIcon } from './components/icons';
 import { InfoSection } from './components/InfoSection';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { AiConfigModal, AIConfig, DEFAULT_AI_CONFIG } from './components/AiConfigModal';
@@ -310,6 +310,21 @@ const App: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {/* GitHub Repository Link */}
+            <a
+              href="https://github.com/rossihana/Readme-Generator"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="GitHub Repository"
+              className={`p-2 rounded-xl transition-all ${
+                isDark 
+                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white' 
+                  : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 shadow-sm'
+              }`}
+            >
+              <GitHubIcon className="w-4 h-4" />
+            </a>
+
             {/* Theme Toggle */}
             <button
               onClick={() => setIsDark(d => !d)}

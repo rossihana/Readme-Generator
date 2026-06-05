@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eye, EyeOff, Wifi, WifiOff, Save, RefreshCw, ChevronDown, Zap, AlertTriangle, Terminal } from 'lucide-react';
+import { GitHubIcon } from './icons';
 
 export interface AIConfig {
   provider: string;
@@ -446,7 +447,18 @@ export const AiConfigModal: React.FC<AiConfigModalProps> = ({
                           <Terminal className="w-3.5 h-3.5" />
                           {t('ai_config.local_ai_guide_run_local')}
                         </div>
-                        <div>{t('ai_config.local_ai_guide_step_1')}</div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{t('ai_config.local_ai_guide_step_1')}</span>
+                          <a
+                            href="https://github.com/rossihana/Readme-Generator"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 underline font-bold transition-colors"
+                          >
+                            <GitHubIcon className="w-3 h-3" />
+                            GitHub Repo
+                          </a>
+                        </div>
                         <div className="mt-1">{t('ai_config.local_ai_guide_step_2')}</div>
                         <div className={`p-1.5 rounded my-1 select-all font-bold ${
                           isDark ? 'bg-gray-900 text-purple-300' : 'bg-gray-200 text-purple-700'
