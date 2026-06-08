@@ -215,7 +215,7 @@ export const AiConfigModal: React.FC<AiConfigModalProps> = ({
     return PROVIDER_MODELS[config.provider] ?? PROVIDER_MODELS['default'];
   })();
 
-  const needsApiKey = ['gemini_custom', 'openai', 'claude', 'groq', 'deepseek', 'mistral', 'openrouter', 'nine_router'].includes(config.provider);
+  const needsApiKey = ['gemini_custom', 'openai', 'claude', 'groq', 'deepseek', 'mistral', 'openrouter'].includes(config.provider);
   const needsOllamaUrl = config.provider === 'ollama';
   const needsNineRouterUrl = config.provider === 'nine_router';
 
